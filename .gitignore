@@ -12,7 +12,6 @@ logs/
 
 # IDE
 .idea/
-.vscode/
 *.iml
 
 # OS
@@ -23,4 +22,3 @@ Thumbs.db
 .env
 .env.*
 !.env.example
-

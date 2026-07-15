@@ -103,6 +103,7 @@ QueueMate/
 - 接口设计：[docs/api_design.md](docs/api_design.md)
 - 测试计划：[docs/test_plan.md](docs/test_plan.md)
 - 生态链说明：[docs/ecosystem.md](docs/ecosystem.md)
+- 本地开发环境：[docs/dev_setup.md](docs/dev_setup.md)
 
 ## 开发规划
 

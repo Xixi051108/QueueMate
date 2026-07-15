@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Debug QueueMate Server",
+      "request": "launch",
+      "mainClass": "com.queuemate.QueueMateApplication",
+      "projectName": "queuemate-server",
+      "cwd": "${workspaceFolder}/backend/queuemate-server",
+      "env": {
+        "SPRING_PROFILES_ACTIVE": "local"
+      }
+    }
+  ]
+}
+

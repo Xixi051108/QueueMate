@@ -1,0 +1,32 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "backend: test",
+      "type": "shell",
+      "command": "mvn",
+      "args": [
+        "test"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/backend/queuemate-server"
+      },
+      "group": "test",
+      "problemMatcher": "$maven"
+    },
+    {
+      "label": "backend: run",
+      "type": "shell",
+      "command": "mvn",
+      "args": [
+        "spring-boot:run"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/backend/queuemate-server"
+      },
+      "group": "build",
+      "problemMatcher": "$maven"
+    }
+  ]
+}
+
