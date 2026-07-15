@@ -9,9 +9,16 @@
       "projectName": "queuemate-server",
       "cwd": "${workspaceFolder}/backend/queuemate-server",
       "env": {
-        "SPRING_PROFILES_ACTIVE": "local"
+        "DB_PASSWORD": "${input:dbPassword}"
       }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "dbPassword",
+      "type": "promptString",
+      "description": "QueueMate 本机 MySQL 密码",
+      "password": true
     }
   ]
 }
-

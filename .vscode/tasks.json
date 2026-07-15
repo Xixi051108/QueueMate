@@ -9,7 +9,10 @@
         "test"
       ],
       "options": {
-        "cwd": "${workspaceFolder}/backend/queuemate-server"
+        "cwd": "${workspaceFolder}/backend/queuemate-server",
+        "env": {
+          "DB_PASSWORD": "${input:dbPassword}"
+        }
       },
       "group": "test",
       "problemMatcher": "$maven"
@@ -27,6 +30,13 @@
       "group": "build",
       "problemMatcher": "$maven"
     }
+  ],
+  "inputs": [
+    {
+      "id": "dbPassword",
+      "type": "promptString",
+      "description": "QueueMate 本机 MySQL 密码",
+      "password": true
+    }
   ]
 }
-

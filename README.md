@@ -2,7 +2,27 @@
 
 QueueMate 是一个面向测开作品集的生活排队与预约平台项目。它用奶茶店、自习室、羽毛球场等模拟生活场景，练习 Spring Boot + Vue3 + MySQL 的完整开发流程，并重点展示接口测试、权限测试、并发测试、Web UI 自动化测试和 GitHub Actions CI 能力。
 
-当前阶段先完成项目初始化和设计文档，后续再逐步实现后端、前端、测试资产和 CI 流水线。
+当前已完成项目初始化、设计文档、MySQL 初始化，以及用户注册、登录、JWT 鉴权和首批 Postman 接口测试资产。后续继续实现地点、预约、钱包、排队、前端和 CI。
+
+## 当前进度
+
+- Spring Boot 后端可连接本地 MySQL 并正常启动
+- 已实现 `POST /api/v1/auth/register`
+- 已实现 `POST /api/v1/auth/login`
+- 已实现 `GET /api/v1/auth/me`
+- 已实现 BCrypt 密码哈希、JWT Bearer 鉴权、统一 401/403 响应
+- 已有 10 个后端自动化测试
+- 已提供 Postman 本地环境和认证测试集合
+
+本地模拟账号：
+
+| 角色 | 用户名 | 密码 |
+| --- | --- | --- |
+| ADMIN | `admin` | `Admin123456` |
+| MERCHANT | `merchant_tea`、`merchant_sport` | `Merchant123456` |
+| USER | `alice`、`bob`、`carol` | `User123456` |
+
+这些账号仅用于本地测试，不应复制到真实环境。
 
 ## 项目目标
 
@@ -73,6 +93,9 @@ QueueMate/
 |   |-- ecosystem.md
 |   |-- requirement.md
 |   `-- test_plan.md
+|-- knowledge/
+|   |-- 01-project-initialization-and-runtime.md
+|   `-- 02-authentication-and-jwt.md
 |-- backend/
 |   `-- queuemate-server/
 |       `-- src/
@@ -104,6 +127,8 @@ QueueMate/
 - 测试计划：[docs/test_plan.md](docs/test_plan.md)
 - 生态链说明：[docs/ecosystem.md](docs/ecosystem.md)
 - 本地开发环境：[docs/dev_setup.md](docs/dev_setup.md)
+- 初始化学习记录：[knowledge/01-project-initialization-and-runtime.md](knowledge/01-project-initialization-and-runtime.md)
+- 认证学习记录：[knowledge/02-authentication-and-jwt.md](knowledge/02-authentication-and-jwt.md)
 
 ## 开发规划
 

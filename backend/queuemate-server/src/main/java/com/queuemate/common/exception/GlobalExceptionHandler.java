@@ -2,8 +2,15 @@ package com.queuemate.common.exception;
 
 import com.queuemate.common.api.ApiResponse;
 import jakarta.validation.ConstraintViolationException;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -12,26 +19,38 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
     @ExceptionHandler(BusinessException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ApiResponse<Void> handleBusinessException(BusinessException ex) {
-        return ApiResponse.fail(ex.getCode(), ex.getMessage());
+    public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException ex) {
+        return ResponseEntity
+                .status(ex.getStatus())
+                .body(ApiResponse.fail(ex.getCode(), ex.getMessage()));
     }
 
     @ExceptionHandler({
             MethodArgumentNotValidException.class,
             BindException.class,
-            ConstraintViolationException.class
+            ConstraintViolationException.class,
+            HttpMessageNotReadableException.class,
+            MissingServletRequestParameterException.class
     })
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ApiResponse<Void> handleValidationException(Exception ex) {
+    public ApiResponse<Map<String, String>> handleValidationException(Exception ex) {
+        if (ex instanceof MethodArgumentNotValidException validationException) {
+            Map<String, String> errors = new LinkedHashMap<>();
+            validationException.getBindingResult().getFieldErrors().forEach(error ->
+                    errors.putIfAbsent(error.getField(), error.getDefaultMessage())
+            );
+            return new ApiResponse<>("PARAM_INVALID", "请求参数不合法", errors);
+        }
         return ApiResponse.fail("PARAM_INVALID", "请求参数不合法");
     }
 
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ApiResponse<Void> handleException(Exception ex) {
+        log.error("Unhandled server exception", ex);
         return ApiResponse.fail("SYSTEM_ERROR", "系统异常，请稍后重试");
     }
 }
-

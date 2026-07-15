@@ -32,20 +32,20 @@ VS Code 工作区已在 `.vscode/settings.json` 中配置：
 
 ## 3. Maven
 
-当前系统 PATH 中没有检测到 `mvn` 命令。推荐安装 Apache Maven 后配置：
+本机已安装 Apache Maven 3.9.16：
 
 ```text
-MAVEN_HOME=D:\apache-maven
+MAVEN_HOME=D:\Maven\apache-maven-3.9.16
 Path=%MAVEN_HOME%\bin
 ```
 
-配置完成后新开一个 PowerShell，验证：
+新开一个 PowerShell 后验证：
 
 ```powershell
 mvn -version
 ```
 
-如果只在 VS Code 中开发，也可以先安装 Maven for Java 插件，让 VS Code 识别 `backend/queuemate-server/pom.xml`。
+VS Code 已安装 Maven for Java 插件，可识别 `backend/queuemate-server/pom.xml`。
 
 ## 4. 后端启动
 
@@ -64,8 +64,11 @@ mvn test
 启动服务：
 
 ```powershell
+$env:DB_PASSWORD = '本机 MySQL 密码'
 mvn spring-boot:run
 ```
+
+`DB_PASSWORD` 只在当前 PowerShell 进程中生效，不会写入仓库。还可以通过 `DB_USERNAME`、`DB_URL` 和 `JWT_SECRET` 覆盖对应配置。
 
 健康检查：
 
@@ -82,6 +85,8 @@ GET http://localhost:8080/api/v1/health
 
 可在 VS Code 中使用 `Terminal -> Run Task...` 执行。
 
+运行 `backend: run` 时会弹窗要求输入本机 MySQL 密码，输入内容不会保存到项目文件。
+
 ## 6. VS Code 调试
 
 项目已配置 `.vscode/launch.json`：
@@ -90,3 +95,4 @@ GET http://localhost:8080/api/v1/health
 
 可在 VS Code 的 Run and Debug 面板直接启动后端。
 
+启动调试时同样会弹窗要求输入本机 MySQL 密码。

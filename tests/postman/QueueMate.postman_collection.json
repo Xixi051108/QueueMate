@@ -1,0 +1,185 @@
+{
+  "info": {
+    "_postman_id": "6c4f9cf8-6fb6-4dc1-8cb7-9e8b5fa1a001",
+    "name": "QueueMate API",
+    "description": "QueueMate API functional and security checks.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/v1/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('health returns 200', () => pm.response.to.have.status(200));",
+              "pm.test('service is UP', () => pm.expect(pm.response.json().data.status).to.eql('UP'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register dynamic user",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set('registerUsername', 'qm_' + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('register returns 201', () => pm.response.to.have.status(201));",
+                  "pm.test('registered role is USER', () => pm.expect(body.data.role).to.eql('USER'));",
+                  "pm.test('registered username matches request', () => pm.expect(body.data.username).to.eql(pm.collectionVariables.get('registerUsername')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{registerUsername}}\",\n  \"password\": \"{{registerPassword}}\",\n  \"displayName\": \"Postman User\",\n  \"phone\": \"13800007777\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/register"
+          }
+        },
+        {
+          "name": "Login registered user",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('login returns 200', () => pm.response.to.have.status(200));",
+                  "pm.test('token type is Bearer', () => pm.expect(body.data.tokenType).to.eql('Bearer'));",
+                  "pm.test('token is returned', () => pm.expect(body.data.token).to.be.a('string').and.not.empty);",
+                  "pm.environment.set('token', body.data.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{registerUsername}}\",\n  \"password\": \"{{registerPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/login"
+          }
+        },
+        {
+          "name": "Get current user",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('current user returns 200', () => pm.response.to.have.status(200));",
+                  "pm.test('identity matches login user', () => pm.expect(body.data.username).to.eql(pm.collectionVariables.get('registerUsername')));",
+                  "pm.test('current user is active', () => pm.expect(body.data.status).to.eql('ACTIVE'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/auth/me"
+          }
+        },
+        {
+          "name": "Reject wrong password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('wrong password returns 401', () => pm.response.to.have.status(401));",
+                  "pm.test('credential error is stable', () => pm.expect(body.code).to.eql('AUTH_CREDENTIALS_INVALID'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"alice\",\n  \"password\": \"WrongPass123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/login"
+          }
+        },
+        {
+          "name": "Reject missing token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('missing token returns 401', () => pm.response.to.have.status(401));",
+                  "pm.test('unauthorized code is stable', () => pm.expect(body.code).to.eql('AUTH_UNAUTHORIZED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/auth/me"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "registerUsername",
+      "value": ""
+    }
+  ]
+}

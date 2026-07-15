@@ -1,12 +1,12 @@
 use queuemate;
 
 insert into users (id, username, password_hash, role, display_name, phone, status) values
-(1001, 'admin', '{noop}Admin123456', 'ADMIN', '平台管理员', '13800000000', 'ACTIVE'),
-(2001, 'merchant_tea', '{noop}Merchant123456', 'MERCHANT', '奶茶店商家', '13800002001', 'ACTIVE'),
-(2002, 'merchant_sport', '{noop}Merchant123456', 'MERCHANT', '运动场商家', '13800002002', 'ACTIVE'),
-(3001, 'alice', '{noop}User123456', 'USER', 'Alice', '13800003001', 'ACTIVE'),
-(3002, 'bob', '{noop}User123456', 'USER', 'Bob', '13800003002', 'ACTIVE'),
-(3003, 'carol', '{noop}User123456', 'USER', 'Carol', '13800003003', 'ACTIVE');
+(1001, 'admin', '{bcrypt}$2a$10$NbUYcsZe4AgAJMgGY2.BfOYU38nRNmsiWEmWptKSrvECCIhXh89ZW', 'ADMIN', '平台管理员', '13800000000', 'ACTIVE'),
+(2001, 'merchant_tea', '{bcrypt}$2a$10$UOg5BWFnaBa0qbpafVexi.wQcrdRofZwgPejJbErqrO5wDCEQ9QkG', 'MERCHANT', '奶茶店商家', '13800002001', 'ACTIVE'),
+(2002, 'merchant_sport', '{bcrypt}$2a$10$UOg5BWFnaBa0qbpafVexi.wQcrdRofZwgPejJbErqrO5wDCEQ9QkG', 'MERCHANT', '运动场商家', '13800002002', 'ACTIVE'),
+(3001, 'alice', '{bcrypt}$2a$10$UeeDl4Q10kiVbaMczFrvLeGz4XilMsAdlh2kwND8pQv043HM2l0a.', 'USER', 'Alice', '13800003001', 'ACTIVE'),
+(3002, 'bob', '{bcrypt}$2a$10$UeeDl4Q10kiVbaMczFrvLeGz4XilMsAdlh2kwND8pQv043HM2l0a.', 'USER', 'Bob', '13800003002', 'ACTIVE'),
+(3003, 'carol', '{bcrypt}$2a$10$UeeDl4Q10kiVbaMczFrvLeGz4XilMsAdlh2kwND8pQv043HM2l0a.', 'USER', 'Carol', '13800003003', 'ACTIVE');
 
 insert into wallets (id, user_id, balance, status) values
 (9001, 3001, 200.00, 'ACTIVE'),
@@ -37,4 +37,3 @@ insert into wallet_transactions (id, transaction_no, wallet_id, user_id, type, a
 insert into queue_tickets (id, ticket_no, venue_id, user_id, queue_date, queue_no, status, taken_at, called_at) values
 (7001, 'QT202607150001', 4001, 3001, '2026-07-15', 1, 'CALLED', '2026-07-15 11:00:00', '2026-07-15 11:05:00'),
 (7002, 'QT202607150002', 4001, 3002, '2026-07-15', 2, 'WAITING', '2026-07-15 11:01:00', null);
-

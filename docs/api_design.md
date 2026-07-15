@@ -33,6 +33,8 @@
 
 说明：注册普通用户账号。
 
+成功状态码：`201 Created`。
+
 请求体：
 
 ```json
@@ -43,6 +45,18 @@
   "phone": "13800000001"
 }
 ```
+
+参数规则：
+
+- `username`：3 到 50 个字符
+- `password`：8 到 64 个字符
+- `displayName`：必填，最多 100 个字符
+- `phone`：可选；填写时必须为 11 位手机号格式
+
+失败场景：
+
+- 参数不合法：`400 / PARAM_INVALID`
+- 用户名已存在：`409 / USERNAME_EXISTS`
 
 响应体：
 
@@ -71,6 +85,11 @@
 }
 ```
 
+失败场景：
+
+- 用户名或密码错误：`401 / AUTH_CREDENTIALS_INVALID`
+- 用户已禁用：`403 / USER_DISABLED`
+
 响应体：
 
 ```json
@@ -95,6 +114,8 @@
 说明：获取当前登录用户信息。
 
 权限：已登录用户。
+
+token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UNAUTHORIZED`。
 
 ## 3. 地点接口
 
@@ -439,6 +460,8 @@
 
 - `AUTH_UNAUTHORIZED`
 - `AUTH_FORBIDDEN`
+- `AUTH_CREDENTIALS_INVALID`
+- `USERNAME_EXISTS`
 - `USER_DISABLED`
 - `VENUE_NOT_FOUND`
 - `VENUE_INACTIVE`
