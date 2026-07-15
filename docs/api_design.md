@@ -131,7 +131,8 @@
   "description": "安静、自习卡座",
   "addressText": "模拟地址 1 号",
   "queueEnabled": false,
-  "bookingEnabled": true
+  "bookingEnabled": true,
+  "defaultPrice": 10.00
 }
 ```
 
@@ -182,7 +183,8 @@
   "slotDate": "2026-07-10",
   "startTime": "19:00:00",
   "endTime": "20:00:00",
-  "capacity": 12
+  "capacity": 12,
+  "price": 20.00
 }
 ```
 
@@ -209,7 +211,9 @@
   "data": {
     "bookingId": 5001,
     "bookingNo": "BK202607100001",
-    "status": "BOOKED"
+    "status": "BOOKED",
+    "payStatus": "PAID",
+    "paidAmount": 20.00
   }
 }
 ```
@@ -220,6 +224,7 @@
 - 时段已关闭
 - 时段容量已满
 - 重复预约
+- 余额不足
 
 ### 4.4 `GET /bookings/my`
 
@@ -247,9 +252,79 @@
 }
 ```
 
-## 5. 现场排队接口
+## 5. 钱包与模拟支付接口
 
-### 5.1 `POST /venues/{id}/queue/tickets`
+### 5.1 `GET /wallets/my`
+
+说明：查看当前用户的钱包余额。
+
+权限：`USER`。
+
+响应体建议：
+
+```json
+{
+  "code": "0",
+  "message": "success",
+  "data": {
+    "walletId": 1001,
+    "balance": 88.00,
+    "status": "ACTIVE"
+  }
+}
+```
+
+### 5.2 `POST /wallets/my/recharge`
+
+说明：模拟充值，只增加站内余额，不接入真实支付渠道。
+
+权限：`USER`。
+
+请求体建议：
+
+```json
+{
+  "amount": 100.00,
+  "remark": "mock recharge"
+}
+```
+
+### 5.3 `GET /wallets/my/transactions`
+
+说明：查看当前用户的钱包流水。
+
+权限：`USER`。
+
+查询参数建议：
+
+- `type`
+- `pageNum`
+- `pageSize`
+
+### 5.4 `GET /admin/wallet-transactions`
+
+说明：管理员查看钱包流水。
+
+权限：`ADMIN`。
+
+### 5.5 `POST /admin/wallets/{userId}/adjust`
+
+说明：管理员进行模拟余额调整，用于测试数据维护。
+
+权限：`ADMIN`。
+
+请求体建议：
+
+```json
+{
+  "amount": 50.00,
+  "remark": "test data adjustment"
+}
+```
+
+## 6. 现场排队接口
+
+### 6.1 `POST /venues/{id}/queue/tickets`
 
 说明：为地点取号。
 
@@ -270,25 +345,25 @@
 }
 ```
 
-### 5.2 `GET /venues/{id}/queue/tickets/current`
+### 6.2 `GET /venues/{id}/queue/tickets/current`
 
 说明：查看当前排队进度和最新叫号。
 
 权限：公开接口。
 
-### 5.3 `PATCH /queue/tickets/{id}/call`
+### 6.3 `PATCH /queue/tickets/{id}/call`
 
 说明：叫号。
 
 权限：地点所属 `MERCHANT` 或 `ADMIN`。
 
-### 5.4 `PATCH /queue/tickets/{id}/complete`
+### 6.4 `PATCH /queue/tickets/{id}/complete`
 
 说明：完成服务。
 
 权限：地点所属 `MERCHANT` 或 `ADMIN`。
 
-### 5.5 `PATCH /queue/tickets/{id}/miss`
+### 6.5 `PATCH /queue/tickets/{id}/miss`
 
 说明：过号。
 
@@ -301,9 +376,9 @@
 - `CALLED` 可流转到 `MISSED`
 - 其他流转均返回业务错误
 
-## 6. 统计接口
+## 7. 统计接口
 
-### 6.1 `GET /stats/venues/{id}/busy-hours`
+### 7.1 `GET /stats/venues/{id}/busy-hours`
 
 说明：返回指定地点在某时间范围内的繁忙时段数据。
 
@@ -331,7 +406,7 @@
 }
 ```
 
-## 7. 权限矩阵
+## 8. 权限矩阵
 
 | 接口 | 匿名 | USER | MERCHANT | ADMIN |
 | --- | --- | --- | --- | --- |
@@ -348,6 +423,11 @@
 | `POST /bookings` | 拒绝 | 允许 | 拒绝 | 视实现而定 |
 | `GET /bookings/my` | 拒绝 | 允许 | 拒绝 | 可额外提供后台接口 |
 | `PATCH /bookings/{id}/cancel` | 拒绝 | 仅本人 | 拒绝 | 允许 |
+| `GET /wallets/my` | 拒绝 | 允许 | 可选 | 可选 |
+| `POST /wallets/my/recharge` | 拒绝 | 允许 | 可选 | 拒绝 |
+| `GET /wallets/my/transactions` | 拒绝 | 允许 | 可选 | 可选 |
+| `GET /admin/wallet-transactions` | 拒绝 | 拒绝 | 拒绝 | 允许 |
+| `POST /admin/wallets/{userId}/adjust` | 拒绝 | 拒绝 | 拒绝 | 允许 |
 | `POST /venues/{id}/queue/tickets` | 拒绝 | 允许 | 允许 | 允许 |
 | `GET /venues/{id}/queue/tickets/current` | 允许 | 允许 | 允许 | 允许 |
 | `PATCH /queue/tickets/{id}/call` | 拒绝 | 拒绝 | 仅自己 | 允许 |
@@ -355,7 +435,7 @@
 | `PATCH /queue/tickets/{id}/miss` | 拒绝 | 拒绝 | 仅自己 | 允许 |
 | `GET /stats/venues/{id}/busy-hours` | 拒绝 | 拒绝 | 仅自己 | 允许 |
 
-## 8. 建议错误码
+## 9. 建议错误码
 
 - `AUTH_UNAUTHORIZED`
 - `AUTH_FORBIDDEN`
@@ -367,14 +447,21 @@
 - `BOOKING_SLOT_FULL`
 - `BOOKING_DUPLICATE`
 - `BOOKING_STATUS_INVALID`
+- `WALLET_NOT_FOUND`
+- `WALLET_FROZEN`
+- `WALLET_BALANCE_NOT_ENOUGH`
+- `PAYMENT_DUPLICATE`
+- `PAYMENT_STATUS_INVALID`
+- `REFUND_DUPLICATE`
 - `QUEUE_TICKET_NOT_FOUND`
 - `QUEUE_STATUS_INVALID`
 - `RESOURCE_NOT_OWNED`
 
-## 9. 接口测试重点
+## 10. 接口测试重点
 
 - 注册和登录成功、失败场景
 - token 缺失、非法、过期场景
 - 商家越权访问其他商家地点
 - 高并发预约重复提交与容量上限控制
+- 余额不足、重复扣款、取消退款、并发支付一致性
 - 号码状态非法流转拦截
