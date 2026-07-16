@@ -168,6 +168,17 @@ class BookingVoucherServiceTest {
         assertThat(voucher.getStatus()).isEqualTo(BookingVoucherStatus.VOID);
     }
 
+    @Test
+    void dueVouchersExpireAndBookingsBecomeNoShow() {
+        when(voucherMapper.expireDue(any())).thenReturn(2);
+        when(bookingMapper.markExpiredPaidBookingsNoShow()).thenReturn(2);
+
+        int expired = voucherService.expireDueVouchers(LocalDateTime.now());
+
+        assertThat(expired).isEqualTo(2);
+        verify(bookingMapper).markExpiredPaidBookingsNoShow();
+    }
+
     private Booking paidBooking() {
         Booking booking = new Booking();
         booking.setId(6001L);

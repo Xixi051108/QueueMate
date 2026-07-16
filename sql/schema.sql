@@ -5,6 +5,7 @@ create database if not exists queuemate
 use queuemate;
 
 drop table if exists queue_tickets;
+drop table if exists queue_daily_sequences;
 drop table if exists wallet_transactions;
 drop table if exists booking_vouchers;
 drop table if exists bookings;
@@ -153,6 +154,16 @@ create table wallet_transactions (
   constraint ck_wallet_transactions_amount_positive check (amount > 0)
 ) engine = InnoDB default charset = utf8mb4;
 
+create table queue_daily_sequences (
+  venue_id bigint not null,
+  queue_date date not null,
+  last_no int not null,
+  updated_at datetime not null default current_timestamp on update current_timestamp,
+  primary key (venue_id, queue_date),
+  constraint fk_queue_daily_sequences_venue foreign key (venue_id) references venues (id),
+  constraint ck_queue_daily_sequences_last_no_positive check (last_no > 0)
+) engine = InnoDB default charset = utf8mb4;
+
 create table queue_tickets (
   id bigint primary key,
   ticket_no varchar(50) not null,
@@ -165,9 +176,13 @@ create table queue_tickets (
   called_at datetime null,
   completed_at datetime null,
   missed_at datetime null,
+  active_flag tinyint generated always as (
+    case when status in ('WAITING', 'CALLED') then 1 else null end
+  ) stored,
   updated_at datetime not null default current_timestamp on update current_timestamp,
   unique key uk_queue_tickets_no (ticket_no),
   unique key uk_queue_tickets_daily_no (venue_id, queue_date, queue_no),
+  unique key uk_queue_tickets_user_active (venue_id, queue_date, user_id, active_flag),
   key idx_queue_tickets_venue_status (venue_id, status),
   constraint fk_queue_tickets_venue foreign key (venue_id) references venues (id),
   constraint fk_queue_tickets_user foreign key (user_id) references users (id)

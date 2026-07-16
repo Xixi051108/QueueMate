@@ -19,6 +19,7 @@ public class WalletService {
 
     private static final String BOOKING_BIZ_TYPE = "BOOKING";
     private static final String WALLET_BIZ_TYPE = "WALLET";
+    private static final String WALLET_ADMIN_BIZ_TYPE = "WALLET_ADMIN";
 
     private final WalletMapper walletMapper;
     private final WalletTransactionMapper transactionMapper;
@@ -74,6 +75,71 @@ public class WalletService {
         return transactionMapper.selectList(query).stream()
                 .map(WalletTransactionResponse::from)
                 .toList();
+    }
+
+    public List<WalletTransactionResponse> listAllTransactions(
+            Long userId,
+            WalletTransactionType type,
+            AuthenticatedUser principal
+    ) {
+        requireAdmin(principal);
+        LambdaQueryWrapper<WalletTransaction> query = Wrappers.<WalletTransaction>lambdaQuery()
+                .eq(userId != null, WalletTransaction::getUserId, userId)
+                .eq(type != null, WalletTransaction::getType, type)
+                .orderByDesc(WalletTransaction::getCreatedAt)
+                .orderByDesc(WalletTransaction::getId);
+        return transactionMapper.selectList(query).stream()
+                .map(WalletTransactionResponse::from)
+                .toList();
+    }
+
+    @Transactional
+    public WalletResponse adjust(
+            Long userId,
+            WalletAdminAdjustRequest request,
+            AuthenticatedUser principal
+    ) {
+        requireAdmin(principal);
+        if (request.amount().compareTo(BigDecimal.ZERO) == 0) {
+            throw new BusinessException(
+                    HttpStatus.BAD_REQUEST,
+                    "WALLET_ADJUSTMENT_INVALID",
+                    "调整金额不能为0"
+            );
+        }
+        Wallet wallet = lockRequiredWallet(userId);
+        requireActive(wallet);
+        BigDecimal before = wallet.getBalance();
+        BigDecimal absoluteAmount = request.amount().abs();
+        BigDecimal after;
+        if (request.amount().signum() > 0) {
+            if (walletMapper.addBalance(wallet.getId(), absoluteAmount) != 1) {
+                throw walletUnavailable();
+            }
+            after = before.add(absoluteAmount);
+        } else {
+            if (before.compareTo(absoluteAmount) < 0
+                    || walletMapper.deductBalance(wallet.getId(), absoluteAmount) != 1) {
+                throw new BusinessException(
+                        HttpStatus.CONFLICT,
+                        "WALLET_BALANCE_NOT_ENOUGH",
+                        "钱包余额不足"
+                );
+            }
+            after = before.subtract(absoluteAmount);
+        }
+        insertTransaction(
+                wallet,
+                WalletTransactionType.ADJUSTMENT,
+                absoluteAmount,
+                before,
+                after,
+                WALLET_ADMIN_BIZ_TYPE,
+                generateAdjustmentBizNo(),
+                normalizeRemark(request.remark(), "管理员余额调整")
+        );
+        wallet.setBalance(after);
+        return WalletResponse.from(wallet);
     }
 
     @Transactional
@@ -217,11 +283,24 @@ public class WalletService {
         }
     }
 
+    private void requireAdmin(AuthenticatedUser principal) {
+        if (principal == null) {
+            throw new BusinessException(HttpStatus.UNAUTHORIZED, "AUTH_UNAUTHORIZED", "登录状态无效");
+        }
+        if (principal.role() != UserRole.ADMIN) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, "AUTH_FORBIDDEN", "仅管理员可以执行此操作");
+        }
+    }
+
     private String normalizeRemark(String remark, String fallback) {
         return StringUtils.hasText(remark) ? remark.trim() : fallback;
     }
 
     private String generateTransactionNo() {
         return "WT" + UUID.randomUUID().toString().replace("-", "").toUpperCase();
+    }
+
+    private String generateAdjustmentBizNo() {
+        return "ADJ" + UUID.randomUUID().toString().replace("-", "").toUpperCase();
     }
 }

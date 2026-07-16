@@ -44,4 +44,13 @@ public interface BookingVoucherMapper extends BaseMapper<BookingVoucher> {
             @Param("voucherId") Long voucherId,
             @Param("voidedAt") LocalDateTime voidedAt
     );
+
+    @Update("""
+            update booking_vouchers
+            set status = 'EXPIRED',
+                expired_at = #{expiredAt}
+            where status = 'AVAILABLE'
+              and valid_until < #{expiredAt}
+            """)
+    int expireDue(@Param("expiredAt") LocalDateTime expiredAt);
 }

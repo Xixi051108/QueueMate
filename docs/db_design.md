@@ -210,7 +210,20 @@
 - 应用日志只记录消费码后四位，避免完整码进入日志
 - 核销、退款作废和过期处理均使用带状态条件的更新保证幂等
 
-### 3.8 `queue_tickets`
+### 3.8 `queue_daily_sequences`
+
+说明：按地点和日期保存最后一个已分配排队序号。取号事务使用 `insert ... on duplicate key update` 与连接级 `last_insert_id()` 原子递增，避免并发执行 `max(queue_no) + 1` 产生重复号码。
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| venue_id | bigint | 地点 ID |
+| queue_date | date | 排队日期 |
+| last_no | int | 最后分配序号 |
+| updated_at | datetime | 更新时间 |
+
+主键：`(venue_id, queue_date)`。
+
+### 3.9 `queue_tickets`
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
@@ -225,13 +238,17 @@
 | called_at | datetime | 叫号时间 |
 | completed_at | datetime | 完成时间 |
 | missed_at | datetime | 过号时间 |
+| active_flag | tinyint | 生成列；`WAITING/CALLED` 为 `1`，终态为 `null` |
 | updated_at | datetime | 更新时间 |
 
 约束与索引：
 
 - 唯一索引：`uk_queue_tickets_no (ticket_no)`
 - 唯一索引：`uk_queue_tickets_daily_no (venue_id, queue_date, queue_no)`
+- 唯一索引：`uk_queue_tickets_user_active (venue_id, queue_date, user_id, active_flag)`
 - 普通索引：`idx_queue_tickets_venue_status (venue_id, status)`
+
+每日序列表保证号码递增，两个唯一索引分别兜住每日号码重复和同一用户在同一地点同一天持有多个有效号码的竞态。
 
 ## 4. 枚举约定
 

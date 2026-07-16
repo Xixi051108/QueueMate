@@ -67,6 +67,13 @@ public class BookingVoucherService {
         return voucherMapper.selectByBookingId(bookingId);
     }
 
+    @Transactional
+    public int expireDueVouchers(LocalDateTime expiredAt) {
+        int expired = voucherMapper.expireDue(expiredAt);
+        bookingMapper.markExpiredPaidBookingsNoShow();
+        return expired;
+    }
+
     public BookingVoucher lockRefundable(Long bookingId) {
         BookingVoucher voucher = voucherMapper.selectByBookingIdForUpdate(bookingId);
         if (voucher == null) {

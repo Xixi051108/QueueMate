@@ -1,0 +1,108 @@
+package com.queuemate.wallet;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.queuemate.auth.AuthenticatedUser;
+import com.queuemate.auth.JwtAuthenticationFilter;
+import com.queuemate.common.exception.GlobalExceptionHandler;
+import com.queuemate.config.RestAccessDeniedHandler;
+import com.queuemate.config.RestAuthenticationEntryPoint;
+import com.queuemate.config.SecurityConfig;
+import com.queuemate.user.UserRole;
+import jakarta.servlet.FilterChain;
+import java.math.BigDecimal;
+import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.test.web.servlet.MockMvc;
+
+@WebMvcTest(WalletAdminController.class)
+@Import({
+        SecurityConfig.class,
+        RestAuthenticationEntryPoint.class,
+        RestAccessDeniedHandler.class,
+        GlobalExceptionHandler.class
+})
+class WalletAdminControllerSecurityTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private WalletService walletService;
+
+    @MockBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @BeforeEach
+    void passThroughJwtFilter() throws Exception {
+        doAnswer(invocation -> {
+            FilterChain chain = invocation.getArgument(2);
+            chain.doFilter(invocation.getArgument(0), invocation.getArgument(1));
+            return null;
+        }).when(jwtAuthenticationFilter).doFilter(any(), any(), any());
+    }
+
+    @Test
+    void merchantCannotViewAllTransactions() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/wallet-transactions")
+                        .with(authentication(authenticationFor(2001L, UserRole.MERCHANT))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void adminCanViewAllTransactions() throws Exception {
+        when(walletService.listAllTransactions(any(), any(), any())).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/v1/admin/wallet-transactions")
+                        .with(authentication(authenticationFor(1001L, UserRole.ADMIN))))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void adminCanAdjustWallet() throws Exception {
+        when(walletService.adjust(any(), any(), any())).thenReturn(
+                new WalletResponse(9001L, 3001L, new BigDecimal("120.00"), WalletStatus.ACTIVE)
+        );
+
+        mockMvc.perform(post("/api/v1/admin/wallets/3001/adjust")
+                        .with(authentication(authenticationFor(1001L, UserRole.ADMIN)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"amount\":20.00,\"remark\":\"test\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.balance").value(120.00));
+    }
+
+    @Test
+    void invalidAdjustmentAmountReturnsParameterError() throws Exception {
+        mockMvc.perform(post("/api/v1/admin/wallets/3001/adjust")
+                        .with(authentication(authenticationFor(1001L, UserRole.ADMIN)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"amount\":1000000}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("PARAM_INVALID"));
+    }
+
+    private UsernamePasswordAuthenticationToken authenticationFor(Long id, UserRole role) {
+        AuthenticatedUser principal = new AuthenticatedUser(id, role.name().toLowerCase(), role);
+        return new UsernamePasswordAuthenticationToken(
+                principal,
+                null,
+                List.of(new SimpleGrantedAuthority("ROLE_" + role.name()))
+        );
+    }
+}

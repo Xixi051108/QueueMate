@@ -59,7 +59,8 @@ public class SecurityConfig {
                                 HttpMethod.GET,
                                 "/api/v1/venues",
                                 "/api/v1/venues/*",
-                                "/api/v1/venues/*/slots"
+                                "/api/v1/venues/*/slots",
+                                "/api/v1/venues/*/queue/tickets/current"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

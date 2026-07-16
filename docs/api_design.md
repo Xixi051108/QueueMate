@@ -524,6 +524,11 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 
 权限：`ADMIN`。
 
+可选查询参数：
+
+- `userId`
+- `type`
+
 ### 5.5 `POST /admin/wallets/{userId}/adjust`
 
 说明：管理员进行模拟余额调整，用于测试数据维护。
@@ -538,6 +543,8 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
   "remark": "test data adjustment"
 }
 ```
+
+`amount` 为正数时增加余额，为负数时扣减余额；金额不能为 `0`，扣减后余额不得小于 `0`。每次调整都写入 `ADJUSTMENT` 流水。
 
 ## 6. 现场排队接口
 
@@ -554,9 +561,10 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
   "code": "0",
   "message": "success",
   "data": {
-    "ticketId": 9001,
-    "ticketNo": "QT202607100001",
+    "id": "9001",
+    "ticketNo": "QT20260710A1B2C3D4E5F6",
     "queueNo": 12,
+    "queueDate": "2026-07-10",
     "status": "WAITING"
   }
 }
@@ -568,19 +576,35 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 
 权限：公开接口。
 
-### 6.3 `PATCH /queue/tickets/{id}/call`
+可选查询参数：`queueDate`，默认当天。
+
+响应包含最新叫号、下一等待号、等待/已叫数量和当前 `WAITING/CALLED` 号码列表。
+
+### 6.3 `GET /queue/tickets/my`
+
+说明：查看当前登录账号取得的号码。
+
+权限：已登录用户。
+
+可选查询参数：
+
+- `venueId`
+- `status`
+- `queueDate`
+
+### 6.4 `PATCH /queue/tickets/{id}/call`
 
 说明：叫号。
 
 权限：地点所属 `MERCHANT` 或 `ADMIN`。
 
-### 6.4 `PATCH /queue/tickets/{id}/complete`
+### 6.5 `PATCH /queue/tickets/{id}/complete`
 
 说明：完成服务。
 
 权限：地点所属 `MERCHANT` 或 `ADMIN`。
 
-### 6.5 `PATCH /queue/tickets/{id}/miss`
+### 6.6 `PATCH /queue/tickets/{id}/miss`
 
 说明：过号。
 
@@ -605,6 +629,8 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 
 - `dateFrom`
 - `dateTo`
+
+日期范围必须正序且最多包含 366 天。预约数量按预约时段开始小时统计，排队数量按取号小时统计，`heatScore = bookingCount + queueCount`。
 
 响应体建议：
 
@@ -642,13 +668,14 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 | `GET /bookings/my` | 拒绝 | 允许 | 拒绝 | 可额外提供后台接口 |
 | `PATCH /bookings/{id}/cancel` | 拒绝 | 仅本人 | 拒绝 | 允许 |
 | `POST /venues/{venueId}/booking-vouchers/redeem` | 拒绝 | 拒绝 | 仅自己 | 允许 |
-| `GET /wallets/my` | 拒绝 | 允许 | 可选 | 可选 |
-| `POST /wallets/my/recharge` | 拒绝 | 允许 | 可选 | 拒绝 |
-| `GET /wallets/my/transactions` | 拒绝 | 允许 | 可选 | 可选 |
+| `GET /wallets/my` | 拒绝 | 允许 | 拒绝 | 拒绝 |
+| `POST /wallets/my/recharge` | 拒绝 | 允许 | 拒绝 | 拒绝 |
+| `GET /wallets/my/transactions` | 拒绝 | 允许 | 拒绝 | 拒绝 |
 | `GET /admin/wallet-transactions` | 拒绝 | 拒绝 | 拒绝 | 允许 |
 | `POST /admin/wallets/{userId}/adjust` | 拒绝 | 拒绝 | 拒绝 | 允许 |
 | `POST /venues/{id}/queue/tickets` | 拒绝 | 允许 | 允许 | 允许 |
 | `GET /venues/{id}/queue/tickets/current` | 允许 | 允许 | 允许 | 允许 |
+| `GET /queue/tickets/my` | 拒绝 | 允许 | 允许 | 允许 |
 | `PATCH /queue/tickets/{id}/call` | 拒绝 | 拒绝 | 仅自己 | 允许 |
 | `PATCH /queue/tickets/{id}/complete` | 拒绝 | 拒绝 | 仅自己 | 允许 |
 | `PATCH /queue/tickets/{id}/miss` | 拒绝 | 拒绝 | 仅自己 | 允许 |
@@ -686,8 +713,12 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 - `PAYMENT_DUPLICATE`
 - `PAYMENT_STATUS_INVALID`
 - `REFUND_DUPLICATE`
+- `WALLET_ADJUSTMENT_INVALID`
 - `QUEUE_TICKET_NOT_FOUND`
+- `QUEUE_TICKET_DUPLICATE`
+- `QUEUE_VENUE_UNAVAILABLE`
 - `QUEUE_STATUS_INVALID`
+- `STATS_DATE_RANGE_INVALID`
 - `RESOURCE_NOT_OWNED`
 - `RESOURCE_NOT_FOUND`
 - `METHOD_NOT_ALLOWED`

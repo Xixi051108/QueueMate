@@ -48,4 +48,14 @@ public interface BookingMapper extends BaseMapper<Booking> {
               and pay_status = 'PAID'
             """)
     int fulfillPaidBooking(@Param("bookingId") Long bookingId);
+
+    @Update("""
+            update bookings b
+            join booking_vouchers v on v.booking_id = b.id
+            set b.status = 'NO_SHOW'
+            where b.status = 'BOOKED'
+              and b.pay_status = 'PAID'
+              and v.status = 'EXPIRED'
+            """)
+    int markExpiredPaidBookingsNoShow();
 }

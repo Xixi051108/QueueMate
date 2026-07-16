@@ -118,6 +118,55 @@ class WalletServiceTest {
         assertThat(captor.getValue().getType()).isEqualTo(WalletTransactionType.REFUND);
     }
 
+    @Test
+    void adminAddsBalanceWithAdjustmentTransaction() {
+        Wallet wallet = wallet("50.00", WalletStatus.ACTIVE);
+        when(walletMapper.selectByUserIdForUpdate(3001L)).thenReturn(wallet);
+        when(walletMapper.addBalance(9001L, new BigDecimal("20.00"))).thenReturn(1);
+
+        WalletResponse response = walletService.adjust(
+                3001L,
+                new WalletAdminAdjustRequest(new BigDecimal("20.00"), " test adjustment "),
+                admin()
+        );
+
+        assertThat(response.balance()).isEqualByComparingTo("70.00");
+        ArgumentCaptor<WalletTransaction> captor = ArgumentCaptor.forClass(WalletTransaction.class);
+        verify(transactionMapper).insert(captor.capture());
+        assertThat(captor.getValue().getType()).isEqualTo(WalletTransactionType.ADJUSTMENT);
+        assertThat(captor.getValue().getAmount()).isEqualByComparingTo("20.00");
+    }
+
+    @Test
+    void adminCannotDeductBelowZero() {
+        when(walletMapper.selectByUserIdForUpdate(3001L))
+                .thenReturn(wallet("10.00", WalletStatus.ACTIVE));
+
+        assertBusinessError(
+                () -> walletService.adjust(
+                        3001L,
+                        new WalletAdminAdjustRequest(new BigDecimal("-20.00"), null),
+                        admin()
+                ),
+                HttpStatus.CONFLICT,
+                "WALLET_BALANCE_NOT_ENOUGH"
+        );
+        verify(transactionMapper, never()).insert(any(WalletTransaction.class));
+    }
+
+    @Test
+    void zeroAdminAdjustmentIsRejected() {
+        assertBusinessError(
+                () -> walletService.adjust(
+                        3001L,
+                        new WalletAdminAdjustRequest(BigDecimal.ZERO, null),
+                        admin()
+                ),
+                HttpStatus.BAD_REQUEST,
+                "WALLET_ADJUSTMENT_INVALID"
+        );
+    }
+
     private Wallet wallet(String balance, WalletStatus status) {
         Wallet wallet = new Wallet();
         wallet.setId(9001L);
@@ -129,6 +178,10 @@ class WalletServiceTest {
 
     private AuthenticatedUser user() {
         return new AuthenticatedUser(3001L, "alice", UserRole.USER);
+    }
+
+    private AuthenticatedUser admin() {
+        return new AuthenticatedUser(1001L, "admin", UserRole.ADMIN);
     }
 
     private void assertBusinessError(Runnable action, HttpStatus status, String code) {

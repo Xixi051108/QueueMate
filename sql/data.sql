@@ -41,3 +41,6 @@ insert into wallet_transactions (id, transaction_no, wallet_id, user_id, type, a
 insert into queue_tickets (id, ticket_no, venue_id, user_id, queue_date, queue_no, status, taken_at, called_at) values
 (7001, 'QT202607150001', 4001, 3001, '2026-07-15', 1, 'CALLED', '2026-07-15 11:00:00', '2026-07-15 11:05:00'),
 (7002, 'QT202607150002', 4001, 3002, '2026-07-15', 2, 'WAITING', '2026-07-15 11:01:00', null);
+
+insert into queue_daily_sequences (venue_id, queue_date, last_no) values
+(4001, '2026-07-15', 2);

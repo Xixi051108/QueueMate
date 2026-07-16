@@ -325,11 +325,16 @@ JMeter 建议：
 
 - `BookingServiceTest`：17 个，覆盖免费预约、付费预约、钱包扣款失败回滚、地点和时段可用性、过期、重复预约、满额、事务异常、本人查询、权限、取消、退款窗口和名额回补。
 - `BookingControllerSecurityTest`：10 个，覆盖匿名和角色权限、参数校验、查询筛选、取消、统一 404 和统一 405。
-- `WalletServiceTest`：5 个，覆盖充值、付费扣款、余额不足、冻结钱包和退款。
+- `WalletServiceTest`：8 个，覆盖充值、付费扣款、余额不足、冻结钱包、退款和管理员正负调整。
 - `WalletControllerSecurityTest`：4 个，覆盖匿名、角色权限、钱包查询和充值参数校验。
-- `BookingVoucherServiceTest`：7 个，覆盖消费码生成、核销、跨店、时间窗口、重复核销、并发条件更新和退款作废。
+- `WalletAdminControllerSecurityTest`：4 个，覆盖管理员流水、余额调整和非管理员拒绝。
+- `BookingVoucherServiceTest`：8 个，覆盖消费码生成、核销、跨店、时间窗口、重复核销、并发条件更新、退款作废和自动过期。
 - `BookingVoucherControllerSecurityTest`：4 个，覆盖匿名、普通用户禁止核销、商家核销和消费码参数校验。
-- 当前 Maven 全量共执行 94 个测试，结果为 0 失败、0 错误、0 跳过。
+- `QueueTicketServiceTest`：9 个，覆盖取号、地点开关、重复号码、当前进度、叫号、完成、过号和并发条件更新。
+- `QueueTicketControllerSecurityTest`：7 个，覆盖公开进度、登录取号、本人号码、商家操作和角色权限。
+- `BusyHoursServiceTest`：3 个，覆盖预约/排队小时聚合与日期范围。
+- `BusyHoursControllerSecurityTest`：4 个，覆盖匿名、普通用户、商家访问和参数校验。
+- 当前 Maven 全量共执行 125 个测试，结果为 0 失败、0 错误、0 跳过。
 
 真实 HTTP + MySQL 并发验证：
 
@@ -350,4 +355,15 @@ JMeter 建议：
 - 数据库最终为 3 条支付流水、3 张消费凭证、`reserved_count=3`，同一消费码并发核销结果为 200/409。
 - 本轮真实回归的临时用户、钱包、流水、预约、消费码和时段已全部清理。
 
-Postman 已覆盖认证、地点、预约时段、钱包查询、充值、流水、免费预约、付费预约、取消退款和作废消费码。当前共 32 个请求且 JSON 可解析；只有实际运行 Postman Runner 或 Newman 后才能标记接口集合通过。
+排队、统计和后端收官真实 HTTP + MySQL 验证：
+
+- 同一用户重复持有有效号码返回 `409/QUEUE_TICKET_DUPLICATE`。
+- 完整验证 `WAITING -> CALLED -> COMPLETED` 和 `WAITING -> CALLED -> MISSED`。
+- 6 个用户并发取号全部成功，得到连续且唯一的 `3-8` 号。
+- 同一号码并发叫号结果为 200/409。
+- 管理员余额增加 5 后再扣减 5，余额恢复且产生 2 条 `ADJUSTMENT` 流水。
+- 过期 `AVAILABLE` 消费码由定时任务转为 `EXPIRED`，对应预约转为 `NO_SHOW`。
+- 预约和排队小时聚合返回正确 `bookingCount`、`queueCount` 和 `heatScore`。
+- 本轮临时用户、号码、序列、余额流水、预约、消费码、时段和数据库账号已全部清理。
+
+Postman 已覆盖认证、地点、预约时段、钱包、免费/付费预约、退款、消费码、排队、管理员钱包和繁忙统计。当前共 42 个请求且 JSON 可解析；只有实际运行 Postman Runner 或 Newman 后才能标记接口集合通过。
