@@ -22,4 +22,30 @@ public interface BookingMapper extends BaseMapper<Booking> {
             @Param("reason") String reason,
             @Param("cancelledAt") LocalDateTime cancelledAt
     );
+
+    @Update("""
+            update bookings
+            set status = 'CANCELLED',
+                pay_status = 'REFUNDED',
+                cancel_reason = #{reason},
+                cancelled_at = #{cancelledAt},
+                refunded_at = #{cancelledAt}
+            where id = #{bookingId}
+              and status = 'BOOKED'
+              and pay_status = 'PAID'
+            """)
+    int cancelPaidBooking(
+            @Param("bookingId") Long bookingId,
+            @Param("reason") String reason,
+            @Param("cancelledAt") LocalDateTime cancelledAt
+    );
+
+    @Update("""
+            update bookings
+            set status = 'FULFILLED'
+            where id = #{bookingId}
+              and status = 'BOOKED'
+              and pay_status = 'PAID'
+            """)
+    int fulfillPaidBooking(@Param("bookingId") Long bookingId);
 }

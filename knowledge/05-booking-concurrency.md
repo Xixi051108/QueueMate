@@ -1,5 +1,7 @@
 # QueueMate 免费预约与并发防超卖
 
+> 本文记录免费预约阶段的历史实现。收费预约已在后续钱包与消费码模块中上线，当前行为以 `knowledge/07-wallet-voucher-implementation.md` 为准。
+
 ## 1. 本轮目标
 
 本轮完成用户预约的第一个可运行闭环：

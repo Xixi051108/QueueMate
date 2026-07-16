@@ -590,6 +590,98 @@
       ]
     },
     {
+      "name": "Wallets",
+      "item": [
+        {
+          "name": "Get initial wallet",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('wallet returns 200', () => pm.response.to.have.status(200));",
+                  "pm.test('new user wallet starts at zero', () => pm.expect(body.data.balance).to.eql(0.00));",
+                  "pm.test('wallet is active', () => pm.expect(body.data.status).to.eql('ACTIVE'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/wallets/my"
+          }
+        },
+        {
+          "name": "Recharge wallet",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('recharge returns 200', () => pm.response.to.have.status(200));",
+                  "pm.test('wallet balance becomes 100', () => pm.expect(body.data.balance).to.eql(100.00));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 100.00,\n  \"remark\": \"Postman mock recharge\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/wallets/my/recharge"
+          }
+        },
+        {
+          "name": "List wallet transactions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('wallet transactions return 200', () => pm.response.to.have.status(200));",
+                  "pm.test('recharge transaction is present', () => pm.expect(body.data.some(item => item.type === 'RECHARGE' && item.amount === 100.00)).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/wallets/my/transactions"
+          }
+        }
+      ]
+    },
+    {
       "name": "Bookings",
       "item": [
         {
@@ -843,15 +935,18 @@
           }
         },
         {
-          "name": "Reject paid booking before wallet module",
+          "name": "Create paid booking with voucher",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
                   "const body = pm.response.json();",
-                  "pm.test('paid booking returns 409', () => pm.response.to.have.status(409));",
-                  "pm.test('payment required code is stable', () => pm.expect(body.code).to.eql('BOOKING_PAYMENT_REQUIRED'));"
+                  "pm.test('paid booking returns 201', () => pm.response.to.have.status(201));",
+                  "pm.test('paid booking is paid', () => { pm.expect(body.data.payStatus).to.eql('PAID'); pm.expect(body.data.paidAmount).to.eql(10.00); });",
+                  "pm.test('available consumption code is returned', () => { pm.expect(body.data.voucher.status).to.eql('AVAILABLE'); pm.expect(body.data.voucher.consumptionCode).to.be.a('string').and.not.empty; });",
+                  "pm.collectionVariables.set('paidBookingId', body.data.id);",
+                  "pm.collectionVariables.set('paidConsumptionCode', body.data.voucher.consumptionCode);"
                 ]
               }
             }
@@ -874,6 +969,74 @@
               "raw": "{\n  \"slotId\": \"{{paidSlotId}}\"\n}"
             },
             "url": "{{baseUrl}}/api/v1/bookings"
+          }
+        },
+        {
+          "name": "Cancel paid booking and refund",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('paid booking cancel returns 200', () => pm.response.to.have.status(200));",
+                  "pm.test('paid booking is refunded and voucher voided', () => { pm.expect(body.data.status).to.eql('CANCELLED'); pm.expect(body.data.payStatus).to.eql('REFUNDED'); pm.expect(body.data.voucher.status).to.eql('VOID'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Postman paid refund\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/bookings/{{paidBookingId}}/cancel"
+          }
+        },
+        {
+          "name": "Reject voided consumption code",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('voided voucher returns 409', () => pm.response.to.have.status(409));",
+                  "pm.test('voucher status error is stable', () => pm.expect(body.code).to.eql('CONSUMPTION_CODE_STATUS_INVALID'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{merchantToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"consumptionCode\": \"{{paidConsumptionCode}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/venues/4002/booking-vouchers/redeem"
           }
         }
       ]
@@ -934,6 +1097,14 @@
     },
     {
       "key": "bookingId",
+      "value": ""
+    },
+    {
+      "key": "paidBookingId",
+      "value": ""
+    },
+    {
+      "key": "paidConsumptionCode",
       "value": ""
     }
   ]

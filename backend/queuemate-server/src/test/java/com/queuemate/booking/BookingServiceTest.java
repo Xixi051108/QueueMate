@@ -13,6 +13,7 @@ import com.queuemate.user.UserRole;
 import com.queuemate.venue.Venue;
 import com.queuemate.venue.VenueService;
 import com.queuemate.venue.VenueStatus;
+import com.queuemate.wallet.WalletService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -39,11 +40,23 @@ class BookingServiceTest {
     @Mock
     private VenueService venueService;
 
+    @Mock
+    private WalletService walletService;
+
+    @Mock
+    private BookingVoucherService voucherService;
+
     private BookingService bookingService;
 
     @BeforeEach
     void setUp() {
-        bookingService = new BookingService(bookingMapper, bookingSlotMapper, venueService);
+        bookingService = new BookingService(
+                bookingMapper,
+                bookingSlotMapper,
+                venueService,
+                walletService,
+                voucherService
+        );
     }
 
     @Test
@@ -93,17 +106,60 @@ class BookingServiceTest {
     }
 
     @Test
-    void paidSlotWaitsForWalletModule() {
+    void paidSlotChargesWalletAndCreatesVoucher() {
         BookingSlot slot = openFreeSlot();
         slot.setPrice(new BigDecimal("20.00"));
         when(bookingSlotMapper.selectById(5001L)).thenReturn(slot);
         when(venueService.getRequiredVenue(4002L)).thenReturn(activeVenue());
+        when(bookingMapper.selectCount(any())).thenReturn(0L);
+        when(bookingSlotMapper.reserveCapacity(5001L)).thenReturn(1);
+        when(bookingMapper.insert(any(Booking.class))).thenAnswer(invocation -> {
+            Booking booking = invocation.getArgument(0);
+            booking.setId(6102L);
+            return 1;
+        });
+        BookingVoucher voucher = availableVoucher();
+        voucher.setBookingId(6102L);
+        when(voucherService.createForPaidBooking(any(), any())).thenReturn(voucher);
+
+        BookingResponse response = bookingService.create(
+                new BookingCreateRequest(5001L),
+                userPrincipal(3001L)
+        );
+
+        assertThat(response.payStatus()).isEqualTo(BookingPayStatus.PAID);
+        assertThat(response.paidAmount()).isEqualByComparingTo("20.00");
+        assertThat(response.voucher()).isNotNull();
+        assertThat(response.voucher().status()).isEqualTo(BookingVoucherStatus.AVAILABLE);
+        verify(walletService).chargeBooking(
+                org.mockito.ArgumentMatchers.eq(3001L),
+                org.mockito.ArgumentMatchers.eq(new BigDecimal("20.00")),
+                any()
+        );
+    }
+
+    @Test
+    void paidBookingFailureDoesNotInsertBookingOrVoucher() {
+        BookingSlot slot = openFreeSlot();
+        slot.setPrice(new BigDecimal("20.00"));
+        when(bookingSlotMapper.selectById(5001L)).thenReturn(slot);
+        when(venueService.getRequiredVenue(4002L)).thenReturn(activeVenue());
+        when(bookingMapper.selectCount(any())).thenReturn(0L);
+        when(bookingSlotMapper.reserveCapacity(5001L)).thenReturn(1);
+        when(walletService.chargeBooking(any(), any(), any()))
+                .thenThrow(new BusinessException(
+                        HttpStatus.CONFLICT,
+                        "WALLET_BALANCE_NOT_ENOUGH",
+                        "钱包余额不足"
+                ));
 
         assertBusinessError(
                 () -> bookingService.create(new BookingCreateRequest(5001L), userPrincipal(3001L)),
                 HttpStatus.CONFLICT,
-                "BOOKING_PAYMENT_REQUIRED"
+                "WALLET_BALANCE_NOT_ENOUGH"
         );
+        verify(bookingMapper, never()).insert(any(Booking.class));
+        verify(voucherService, never()).createForPaidBooking(any(), any());
     }
 
     @Test
@@ -246,11 +302,39 @@ class BookingServiceTest {
     }
 
     @Test
-    void paidBookingRequiresRefundFlow() {
+    void ownerCancelsPaidBookingBeforeStartAndRefunds() {
         Booking booking = bookedBooking();
         booking.setPayStatus(BookingPayStatus.PAID);
         booking.setPaidAmount(new BigDecimal("10.00"));
         when(bookingMapper.selectById(6001L)).thenReturn(booking);
+        when(bookingSlotMapper.selectById(5001L)).thenReturn(openFreeSlot());
+        BookingVoucher voucher = availableVoucher();
+        when(voucherService.lockRefundable(6001L)).thenReturn(voucher);
+        when(bookingMapper.cancelPaidBooking(any(), any(), any())).thenReturn(1);
+        when(bookingSlotMapper.releaseCapacity(5001L)).thenReturn(1);
+
+        BookingResponse response = bookingService.cancel(
+                6001L,
+                new BookingCancelRequest(null),
+                userPrincipal(3001L)
+        );
+
+        assertThat(response.status()).isEqualTo(BookingStatus.CANCELLED);
+        assertThat(response.payStatus()).isEqualTo(BookingPayStatus.REFUNDED);
+        verify(walletService).refundBooking(3001L, new BigDecimal("10.00"), "BKTEST0001");
+        verify(voucherService).voidRefundedVoucher(any(), any());
+    }
+
+    @Test
+    void paidBookingCannotBeCancelledAfterStart() {
+        Booking booking = bookedBooking();
+        booking.setPayStatus(BookingPayStatus.PAID);
+        booking.setPaidAmount(new BigDecimal("10.00"));
+        BookingSlot slot = openFreeSlot();
+        slot.setSlotDate(LocalDate.now());
+        slot.setStartTime(LocalTime.now().minusMinutes(1));
+        when(bookingMapper.selectById(6001L)).thenReturn(booking);
+        when(bookingSlotMapper.selectById(5001L)).thenReturn(slot);
 
         assertBusinessError(
                 () -> bookingService.cancel(
@@ -259,8 +343,9 @@ class BookingServiceTest {
                         userPrincipal(3001L)
                 ),
                 HttpStatus.CONFLICT,
-                "BOOKING_REFUND_REQUIRED"
+                "BOOKING_REFUND_WINDOW_CLOSED"
         );
+        verify(walletService, never()).refundBooking(any(), any(), any());
     }
 
     @Test
@@ -336,6 +421,20 @@ class BookingServiceTest {
         booking.setPaidAmount(BigDecimal.ZERO);
         booking.setBookedAt(LocalDateTime.now().minusMinutes(1));
         return booking;
+    }
+
+    private BookingVoucher availableVoucher() {
+        BookingVoucher voucher = new BookingVoucher();
+        voucher.setId(8001L);
+        voucher.setBookingId(6001L);
+        voucher.setUserId(3001L);
+        voucher.setVenueId(4002L);
+        voucher.setConsumptionCode("QMTESTCODE01");
+        voucher.setAmount(new BigDecimal("10.00"));
+        voucher.setStatus(BookingVoucherStatus.AVAILABLE);
+        voucher.setValidFrom(LocalDateTime.now().minusMinutes(1));
+        voucher.setValidUntil(LocalDateTime.now().plusHours(1));
+        return voucher;
     }
 
     private AuthenticatedUser userPrincipal(Long id) {

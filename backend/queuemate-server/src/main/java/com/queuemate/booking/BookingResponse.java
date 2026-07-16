@@ -25,9 +25,14 @@ public record BookingResponse(
         BigDecimal paidAmount,
         String cancelReason,
         LocalDateTime bookedAt,
-        LocalDateTime cancelledAt
+        LocalDateTime cancelledAt,
+        BookingVoucherResponse voucher
 ) {
     public static BookingResponse from(Booking booking) {
+        return from(booking, null);
+    }
+
+    public static BookingResponse from(Booking booking, BookingVoucher voucher) {
         return new BookingResponse(
                 booking.getId(),
                 booking.getBookingNo(),
@@ -39,7 +44,37 @@ public record BookingResponse(
                 booking.getPaidAmount(),
                 booking.getCancelReason(),
                 booking.getBookedAt(),
-                booking.getCancelledAt()
+                booking.getCancelledAt(),
+                BookingVoucherResponse.from(voucher)
+        );
+    }
+
+    public BookingResponse(
+            Long id,
+            String bookingNo,
+            Long userId,
+            Long venueId,
+            Long slotId,
+            BookingStatus status,
+            BookingPayStatus payStatus,
+            BigDecimal paidAmount,
+            String cancelReason,
+            LocalDateTime bookedAt,
+            LocalDateTime cancelledAt
+    ) {
+        this(
+                id,
+                bookingNo,
+                userId,
+                venueId,
+                slotId,
+                status,
+                payStatus,
+                paidAmount,
+                cancelReason,
+                bookedAt,
+                cancelledAt,
+                null
         );
     }
 }

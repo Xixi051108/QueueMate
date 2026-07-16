@@ -28,6 +28,10 @@ insert into bookings (id, booking_no, user_id, venue_id, slot_id, status, pay_st
 (6001, 'BK202607200001', 3001, 4002, 5001, 'BOOKED', 'PAID', 10.00, '2026-07-15 10:00:00', '2026-07-15 10:00:00'),
 (6002, 'BK202607200002', 3002, 4003, 5003, 'BOOKED', 'PAID', 30.00, '2026-07-15 10:05:00', '2026-07-15 10:05:00');
 
+insert into booking_vouchers (id, booking_id, user_id, venue_id, consumption_code, amount, status, valid_from, valid_until) values
+(8001, 6001, 3001, 4002, 'QMDEMO5001', 10.00, 'AVAILABLE', '2026-07-20 08:30:00', '2026-07-20 10:00:00'),
+(8002, 6002, 3002, 4003, 'QMDEMO5003', 30.00, 'AVAILABLE', '2026-07-20 18:30:00', '2026-07-20 20:00:00');
+
 insert into wallet_transactions (id, transaction_no, wallet_id, user_id, type, amount, balance_before, balance_after, biz_type, biz_no, status, remark, created_at) values
 (9101, 'WT202607150001', 9001, 3001, 'RECHARGE', 210.00, 0.00, 210.00, 'WALLET', null, 'SUCCESS', 'initial mock balance', '2026-07-15 09:50:00'),
 (9102, 'WT202607150002', 9001, 3001, 'PAYMENT', 10.00, 210.00, 200.00, 'BOOKING', 'BK202607200001', 'SUCCESS', 'booking payment', '2026-07-15 10:00:00'),

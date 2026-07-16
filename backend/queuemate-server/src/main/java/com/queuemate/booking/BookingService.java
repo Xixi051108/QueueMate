@@ -8,6 +8,7 @@ import com.queuemate.user.UserRole;
 import com.queuemate.venue.Venue;
 import com.queuemate.venue.VenueService;
 import com.queuemate.venue.VenueStatus;
+import com.queuemate.wallet.WalletService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -26,15 +27,21 @@ public class BookingService {
     private final BookingMapper bookingMapper;
     private final BookingSlotMapper bookingSlotMapper;
     private final VenueService venueService;
+    private final WalletService walletService;
+    private final BookingVoucherService voucherService;
 
     public BookingService(
             BookingMapper bookingMapper,
             BookingSlotMapper bookingSlotMapper,
-            VenueService venueService
+            VenueService venueService,
+            WalletService walletService,
+            BookingVoucherService voucherService
     ) {
         this.bookingMapper = bookingMapper;
         this.bookingSlotMapper = bookingSlotMapper;
         this.venueService = venueService;
+        this.walletService = walletService;
+        this.voucherService = voucherService;
     }
 
     @Transactional
@@ -43,7 +50,6 @@ public class BookingService {
         BookingSlot slot = getRequiredSlot(request.slotId());
         Venue venue = venueService.getRequiredVenue(slot.getVenueId());
         validateBookable(venue, slot);
-        ensureFreeSlot(slot);
         ensureNotDuplicate(principal.id(), slot.getId());
 
         int reserved = bookingSlotMapper.reserveCapacity(slot.getId());
@@ -57,16 +63,32 @@ public class BookingService {
         booking.setVenueId(slot.getVenueId());
         booking.setSlotId(slot.getId());
         booking.setStatus(BookingStatus.BOOKED);
-        booking.setPayStatus(BookingPayStatus.NOT_REQUIRED);
-        booking.setPaidAmount(BigDecimal.ZERO);
-        booking.setBookedAt(LocalDateTime.now());
+        LocalDateTime bookedAt = LocalDateTime.now();
+        booking.setBookedAt(bookedAt);
+        boolean paid = slot.getPrice().compareTo(BigDecimal.ZERO) > 0;
+        if (paid) {
+            walletService.chargeBooking(
+                    principal.id(),
+                    slot.getPrice(),
+                    booking.getBookingNo()
+            );
+            booking.setPayStatus(BookingPayStatus.PAID);
+            booking.setPaidAmount(slot.getPrice());
+            booking.setPaidAt(bookedAt);
+        } else {
+            booking.setPayStatus(BookingPayStatus.NOT_REQUIRED);
+            booking.setPaidAmount(BigDecimal.ZERO);
+        }
 
         try {
             bookingMapper.insert(booking);
         } catch (DuplicateKeyException ex) {
             throw duplicateBooking();
         }
-        return BookingResponse.from(booking);
+        BookingVoucher voucher = paid
+                ? voucherService.createForPaidBooking(booking, slot)
+                : null;
+        return BookingResponse.from(booking, voucher);
     }
 
     public List<BookingResponse> listMine(BookingStatus status, AuthenticatedUser principal) {
@@ -77,7 +99,10 @@ public class BookingService {
                 .orderByDesc(Booking::getBookedAt)
                 .orderByDesc(Booking::getId);
         return bookingMapper.selectList(query).stream()
-                .map(BookingResponse::from)
+                .map(booking -> BookingResponse.from(
+                        booking,
+                        voucherService.findByBookingId(booking.getId())
+                ))
                 .toList();
     }
 
@@ -92,17 +117,26 @@ public class BookingService {
         if (booking.getStatus() != BookingStatus.BOOKED) {
             throw invalidBookingStatus();
         }
-        if (booking.getPayStatus() != BookingPayStatus.NOT_REQUIRED) {
-            throw new BusinessException(
-                    HttpStatus.CONFLICT,
-                    "BOOKING_REFUND_REQUIRED",
-                    "收费预约需由退款流程取消"
-            );
-        }
-
         LocalDateTime cancelledAt = LocalDateTime.now();
         String reason = normalizeReason(request.reason());
-        int cancelled = bookingMapper.cancelBooked(bookingId, reason, cancelledAt);
+        BookingVoucher voucher = null;
+        int cancelled;
+        if (booking.getPayStatus() == BookingPayStatus.PAID) {
+            BookingSlot slot = getRequiredSlot(booking.getSlotId());
+            if (!cancelledAt.isBefore(LocalDateTime.of(slot.getSlotDate(), slot.getStartTime()))) {
+                throw new BusinessException(
+                        HttpStatus.CONFLICT,
+                        "BOOKING_REFUND_WINDOW_CLOSED",
+                        "收费预约开始后不允许自助取消"
+                );
+            }
+            voucher = voucherService.lockRefundable(bookingId);
+            cancelled = bookingMapper.cancelPaidBooking(bookingId, reason, cancelledAt);
+        } else if (booking.getPayStatus() == BookingPayStatus.NOT_REQUIRED) {
+            cancelled = bookingMapper.cancelBooked(bookingId, reason, cancelledAt);
+        } else {
+            throw invalidBookingStatus();
+        }
         if (cancelled == 0) {
             throw invalidBookingStatus();
         }
@@ -110,11 +144,21 @@ public class BookingService {
         if (released == 0) {
             throw new IllegalStateException("Booking slot capacity cannot be released");
         }
+        if (voucher != null) {
+            walletService.refundBooking(
+                    booking.getUserId(),
+                    booking.getPaidAmount(),
+                    booking.getBookingNo()
+            );
+            voucherService.voidRefundedVoucher(voucher, cancelledAt);
+            booking.setPayStatus(BookingPayStatus.REFUNDED);
+            booking.setRefundedAt(cancelledAt);
+        }
 
         booking.setStatus(BookingStatus.CANCELLED);
         booking.setCancelReason(reason);
         booking.setCancelledAt(cancelledAt);
-        return BookingResponse.from(booking);
+        return BookingResponse.from(booking, voucher);
     }
 
     private BookingSlot getRequiredSlot(Long slotId) {
@@ -171,16 +215,6 @@ public class BookingService {
         }
         return slot.getSlotDate().isEqual(today)
                 && !slot.getStartTime().isAfter(LocalTime.now());
-    }
-
-    private void ensureFreeSlot(BookingSlot slot) {
-        if (slot.getPrice().compareTo(BigDecimal.ZERO) > 0) {
-            throw new BusinessException(
-                    HttpStatus.CONFLICT,
-                    "BOOKING_PAYMENT_REQUIRED",
-                    "收费时段需在钱包支付模块上线后预约"
-            );
-        }
     }
 
     private void ensureNotDuplicate(Long userId, Long slotId) {

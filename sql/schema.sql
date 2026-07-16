@@ -6,6 +6,7 @@ use queuemate;
 
 drop table if exists queue_tickets;
 drop table if exists wallet_transactions;
+drop table if exists booking_vouchers;
 drop table if exists bookings;
 drop table if exists booking_slots;
 drop table if exists venues;
@@ -103,6 +104,33 @@ create table bookings (
   constraint fk_bookings_slot foreign key (slot_id) references booking_slots (id)
 ) engine = InnoDB default charset = utf8mb4;
 
+create table booking_vouchers (
+  id bigint primary key,
+  booking_id bigint not null,
+  user_id bigint not null,
+  venue_id bigint not null,
+  consumption_code varchar(32) not null,
+  amount decimal(10,2) not null,
+  status varchar(20) not null default 'AVAILABLE',
+  valid_from datetime not null,
+  valid_until datetime not null,
+  redeemed_by bigint null,
+  redeemed_at datetime null,
+  voided_at datetime null,
+  expired_at datetime null,
+  created_at datetime not null default current_timestamp,
+  updated_at datetime not null default current_timestamp on update current_timestamp,
+  unique key uk_booking_vouchers_booking_id (booking_id),
+  unique key uk_booking_vouchers_consumption_code (consumption_code),
+  key idx_booking_vouchers_venue_status (venue_id, status),
+  constraint fk_booking_vouchers_booking foreign key (booking_id) references bookings (id),
+  constraint fk_booking_vouchers_user foreign key (user_id) references users (id),
+  constraint fk_booking_vouchers_venue foreign key (venue_id) references venues (id),
+  constraint fk_booking_vouchers_redeemed_by foreign key (redeemed_by) references users (id),
+  constraint ck_booking_vouchers_amount_positive check (amount > 0),
+  constraint ck_booking_vouchers_time_range check (valid_from < valid_until)
+) engine = InnoDB default charset = utf8mb4;
+
 create table wallet_transactions (
   id bigint primary key,
   transaction_no varchar(50) not null,
@@ -118,8 +146,8 @@ create table wallet_transactions (
   remark varchar(255) null,
   created_at datetime not null default current_timestamp,
   unique key uk_wallet_transactions_no (transaction_no),
+  unique key uk_wallet_transactions_biz_type (biz_type, biz_no, type),
   key idx_wallet_transactions_user_id (user_id),
-  key idx_wallet_transactions_biz (biz_type, biz_no),
   constraint fk_wallet_transactions_wallet foreign key (wallet_id) references wallets (id),
   constraint fk_wallet_transactions_user foreign key (user_id) references users (id),
   constraint ck_wallet_transactions_amount_positive check (amount > 0)
@@ -144,4 +172,3 @@ create table queue_tickets (
   constraint fk_queue_tickets_venue foreign key (venue_id) references venues (id),
   constraint fk_queue_tickets_user foreign key (user_id) references users (id)
 ) engine = InnoDB default charset = utf8mb4;
-
