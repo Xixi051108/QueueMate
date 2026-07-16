@@ -588,6 +588,295 @@
           }
         }
       ]
+    },
+    {
+      "name": "Bookings",
+      "item": [
+        {
+          "name": "Create free booking slot",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const now = Math.floor(Date.now() / 1000);",
+                  "const date = new Date();",
+                  "date.setUTCDate(date.getUTCDate() + 30 + (now % 300));",
+                  "const second = String(now % 59).padStart(2, '0');",
+                  "pm.collectionVariables.set('bookingSlotDate', date.toISOString().slice(0, 10));",
+                  "pm.collectionVariables.set('freeSlotStartTime', `14:00:${second}`);",
+                  "pm.collectionVariables.set('freeSlotEndTime', `15:00:${second}`);",
+                  "pm.collectionVariables.set('paidSlotStartTime', `16:00:${second}`);",
+                  "pm.collectionVariables.set('paidSlotEndTime', `17:00:${second}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('free slot create returns 201', () => pm.response.to.have.status(201));",
+                  "pm.test('free slot is open and empty', () => { pm.expect(body.data.price).to.eql(0.00); pm.expect(body.data.status).to.eql('OPEN'); pm.expect(body.data.reservedCount).to.eql(0); });",
+                  "pm.collectionVariables.set('freeSlotId', body.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{merchantToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"slotDate\": \"{{bookingSlotDate}}\",\n  \"startTime\": \"{{freeSlotStartTime}}\",\n  \"endTime\": \"{{freeSlotEndTime}}\",\n  \"capacity\": 2,\n  \"price\": 0.00\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/venues/4002/slots"
+          }
+        },
+        {
+          "name": "Create paid booking slot",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('paid slot create returns 201', () => pm.response.to.have.status(201));",
+                  "pm.test('paid slot keeps configured price', () => pm.expect(body.data.price).to.eql(10.00));",
+                  "pm.collectionVariables.set('paidSlotId', body.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{merchantToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"slotDate\": \"{{bookingSlotDate}}\",\n  \"startTime\": \"{{paidSlotStartTime}}\",\n  \"endTime\": \"{{paidSlotEndTime}}\",\n  \"capacity\": 2,\n  \"price\": 10.00\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/venues/4002/slots"
+          }
+        },
+        {
+          "name": "Create free booking",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('free booking returns 201', () => pm.response.to.have.status(201));",
+                  "pm.test('free booking is booked without payment', () => { pm.expect(body.data.status).to.eql('BOOKED'); pm.expect(body.data.payStatus).to.eql('NOT_REQUIRED'); pm.expect(body.data.paidAmount).to.eql(0.00); });",
+                  "pm.test('booking ids are strings', () => { pm.expect(body.data.id).to.be.a('string'); pm.expect(body.data.slotId).to.eql(pm.collectionVariables.get('freeSlotId')); });",
+                  "pm.collectionVariables.set('bookingId', body.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"slotId\": \"{{freeSlotId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/bookings"
+          }
+        },
+        {
+          "name": "Reject duplicate booking",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('duplicate booking returns 409', () => pm.response.to.have.status(409));",
+                  "pm.test('duplicate booking code is stable', () => pm.expect(body.code).to.eql('BOOKING_DUPLICATE'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"slotId\": \"{{freeSlotId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/bookings"
+          }
+        },
+        {
+          "name": "List my booked bookings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('my bookings returns 200', () => pm.response.to.have.status(200));",
+                  "pm.test('created booking is listed', () => pm.expect(body.data.some(item => item.id === pm.collectionVariables.get('bookingId') && item.status === 'BOOKED')).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/bookings/my?status=BOOKED"
+          }
+        },
+        {
+          "name": "Cancel free booking",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('booking cancel returns 200', () => pm.response.to.have.status(200));",
+                  "pm.test('booking is cancelled', () => { pm.expect(body.data.status).to.eql('CANCELLED'); pm.expect(body.data.cancelReason).to.eql('Postman cancellation'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Postman cancellation\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/bookings/{{bookingId}}/cancel"
+          }
+        },
+        {
+          "name": "Reject repeated cancellation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('repeated cancel returns 409', () => pm.response.to.have.status(409));",
+                  "pm.test('invalid status code is stable', () => pm.expect(body.code).to.eql('BOOKING_STATUS_INVALID'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": "{{baseUrl}}/api/v1/bookings/{{bookingId}}/cancel"
+          }
+        },
+        {
+          "name": "Reject paid booking before wallet module",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('paid booking returns 409', () => pm.response.to.have.status(409));",
+                  "pm.test('payment required code is stable', () => pm.expect(body.code).to.eql('BOOKING_PAYMENT_REQUIRED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"slotId\": \"{{paidSlotId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/bookings"
+          }
+        }
+      ]
     }
   ],
   "variable": [
@@ -613,6 +902,38 @@
     },
     {
       "key": "slotId",
+      "value": ""
+    },
+    {
+      "key": "bookingSlotDate",
+      "value": ""
+    },
+    {
+      "key": "freeSlotStartTime",
+      "value": ""
+    },
+    {
+      "key": "freeSlotEndTime",
+      "value": ""
+    },
+    {
+      "key": "paidSlotStartTime",
+      "value": ""
+    },
+    {
+      "key": "paidSlotEndTime",
+      "value": ""
+    },
+    {
+      "key": "freeSlotId",
+      "value": ""
+    },
+    {
+      "key": "paidSlotId",
+      "value": ""
+    },
+    {
+      "key": "bookingId",
       "value": ""
     }
   ]

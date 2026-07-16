@@ -289,17 +289,28 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 
 ### 4.4 `POST /bookings`
 
-说明：用户预约某个时段。
+说明：普通用户预约某个免费时段。
 
 权限：`USER`。
 
-请求体建议：
+成功状态码：`201 Created`。
+
+请求体：
 
 ```json
 {
   "slotId": 101
 }
 ```
+
+首版规则：
+
+- `slotId` 必须是正整数。
+- 地点必须为 `ACTIVE` 且 `bookingEnabled=true`。
+- 时段必须为 `OPEN`，且开始时间尚未到达。
+- 当前只开放价格为 `0` 的免费时段；收费时段等待钱包模块。
+- 容量通过数据库条件更新原子增加，容量增加和预约记录插入处于同一事务。
+- 同一用户与时段只能存在一条预约记录，业务校验与数据库唯一键共同防重。
 
 成功返回：
 
@@ -308,22 +319,31 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
   "code": "0",
   "message": "success",
   "data": {
-    "bookingId": 5001,
-    "bookingNo": "BK202607100001",
+    "id": "5001",
+    "bookingNo": "BK8F28C3D893C34D13B77C7E73D75D6C09",
+    "userId": "3001",
+    "venueId": "4002",
+    "slotId": "101",
     "status": "BOOKED",
-    "payStatus": "PAID",
-    "paidAmount": 20.00
+    "payStatus": "NOT_REQUIRED",
+    "paidAmount": 0.00,
+    "cancelReason": null,
+    "bookedAt": "2026-07-16T15:30:00",
+    "cancelledAt": null
   }
 }
 ```
 
 失败场景：
 
-- 时段不存在
-- 时段已关闭
-- 时段容量已满
-- 重复预约
-- 余额不足
+- 时段不存在：`404 / BOOKING_SLOT_NOT_FOUND`
+- 地点已停用：`409 / VENUE_INACTIVE`
+- 地点未启用预约：`409 / VENUE_BOOKING_DISABLED`
+- 时段已关闭：`409 / BOOKING_SLOT_CLOSED`
+- 时段已开始或已过期：`409 / BOOKING_SLOT_EXPIRED`
+- 时段容量已满：`409 / BOOKING_SLOT_FULL`
+- 重复预约：`409 / BOOKING_DUPLICATE`
+- 收费时段暂不可预约：`409 / BOOKING_PAYMENT_REQUIRED`
 
 ### 4.5 `GET /bookings/my`
 
@@ -331,11 +351,11 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 
 权限：`USER`。
 
-查询参数建议：
+查询参数：
 
-- `status`
-- `pageNum`
-- `pageSize`
+- `status`：可选，`BOOKED` / `CANCELLED` / `FULFILLED` / `NO_SHOW`
+
+首版返回列表，不分页；结果按预约时间和预约 ID 倒序排列，只返回当前登录用户的数据。响应中的 `id`、`userId`、`venueId`、`slotId` 均使用字符串。
 
 ### 4.6 `PATCH /bookings/{id}/cancel`
 
@@ -343,13 +363,28 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 
 权限：预约所属 `USER`，或 `ADMIN`。
 
-请求体建议：
+请求体：
 
 ```json
 {
   "reason": "plan changed"
 }
 ```
+
+规则：
+
+- `reason` 可选，去除首尾空白后最多 255 个字符。
+- 只有 `BOOKED` 状态可以取消。
+- 普通用户只能取消自己的预约；管理员可以取消任意预约。
+- 首版仅支持免费预约取消；已进入支付流程的预约返回退款流程提示。
+- 预约状态条件更新与时段名额回补处于同一事务，并发重复取消只允许一次成功。
+
+失败场景：
+
+- 预约不存在：`404 / BOOKING_NOT_FOUND`
+- 普通用户取消他人预约：`403 / RESOURCE_NOT_OWNED`
+- 当前状态不可取消：`409 / BOOKING_STATUS_INVALID`
+- 收费预约需进入退款流程：`409 / BOOKING_REFUND_REQUIRED`
 
 ## 5. 钱包与模拟支付接口
 
@@ -520,7 +555,7 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 | `GET /venues/{id}/slots` | 允许 | 允许 | 允许 | 允许 |
 | `POST /venues/{id}/slots` | 拒绝 | 拒绝 | 仅自己 | 允许 |
 | `PATCH /venues/{venueId}/slots/{slotId}/status` | 拒绝 | 拒绝 | 仅自己 | 允许 |
-| `POST /bookings` | 拒绝 | 允许 | 拒绝 | 视实现而定 |
+| `POST /bookings` | 拒绝 | 允许 | 拒绝 | 拒绝 |
 | `GET /bookings/my` | 拒绝 | 允许 | 拒绝 | 可额外提供后台接口 |
 | `PATCH /bookings/{id}/cancel` | 拒绝 | 仅本人 | 拒绝 | 允许 |
 | `GET /wallets/my` | 拒绝 | 允许 | 可选 | 可选 |
@@ -549,11 +584,15 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 - `MERCHANT_INVALID`
 - `BOOKING_SLOT_NOT_FOUND`
 - `BOOKING_SLOT_CLOSED`
+- `BOOKING_SLOT_EXPIRED`
 - `BOOKING_SLOT_FULL`
 - `BOOKING_SLOT_EXISTS`
 - `BOOKING_SLOT_TIME_INVALID`
+- `BOOKING_NOT_FOUND`
 - `BOOKING_DUPLICATE`
 - `BOOKING_STATUS_INVALID`
+- `BOOKING_PAYMENT_REQUIRED`
+- `BOOKING_REFUND_REQUIRED`
 - `WALLET_NOT_FOUND`
 - `WALLET_FROZEN`
 - `WALLET_BALANCE_NOT_ENOUGH`
@@ -563,6 +602,8 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 - `QUEUE_TICKET_NOT_FOUND`
 - `QUEUE_STATUS_INVALID`
 - `RESOURCE_NOT_OWNED`
+- `RESOURCE_NOT_FOUND`
+- `METHOD_NOT_ALLOWED`
 
 ## 10. 接口测试重点
 

@@ -99,7 +99,7 @@
 | venue_id | bigint | 地点 ID，冗余便于查询 |
 | slot_id | bigint | 时段 ID |
 | status | varchar(20) | `BOOKED` / `CANCELLED` / `FULFILLED` / `NO_SHOW` |
-| pay_status | varchar(20) | `UNPAID` / `PAID` / `REFUNDED` / `FAILED` |
+| pay_status | varchar(20) | `NOT_REQUIRED` / `UNPAID` / `PAID` / `REFUNDED` / `FAILED` |
 | paid_amount | decimal(10,2) | 实付金额 |
 | cancel_reason | varchar(255) | 取消原因，可为空 |
 | booked_at | datetime | 预约时间 |
@@ -119,6 +119,7 @@
 
 - `venue_id` 作为冗余字段，方便按地点维度统计和查询
 - 重复预约通过唯一约束和业务校验双重控制
+- 免费预约成功后 `pay_status` 为 `NOT_REQUIRED`、`paid_amount` 为 `0`
 - 收费预约成功后 `pay_status` 应为 `PAID`
 
 ### 3.5 `wallets`
@@ -231,6 +232,7 @@
 
 ### 4.7 支付状态
 
+- `NOT_REQUIRED`
 - `UNPAID`
 - `PAID`
 - `REFUNDED`
@@ -266,21 +268,24 @@
 
 核心思路：
 
-- 先校验 `bookings(user_id, slot_id)` 是否已存在
-- 对收费预约，先校验钱包余额是否足够
-- 再执行带条件的时段容量原子更新，例如：
+- 先校验 `bookings(user_id, slot_id)` 是否已存在，并由唯一索引兜住并发竞态
+- 当前迭代只创建免费预约；收费时段在钱包模块接入前返回 `BOOKING_PAYMENT_REQUIRED`
+- 再执行带条件的时段容量原子更新；实际 SQL 同时校验时段开放、余量充足、地点启用且支持预约，例如：
 
 ```sql
-update booking_slots
-set reserved_count = reserved_count + 1
-where id = ?
-  and status = 'OPEN'
-  and reserved_count < capacity;
+update booking_slots bs
+join venues v on v.id = bs.venue_id
+set bs.reserved_count = bs.reserved_count + 1
+where bs.id = ?
+  and bs.status = 'OPEN'
+  and bs.reserved_count < bs.capacity
+  and v.status = 'ACTIVE'
+  and v.booking_enabled = 1;
 ```
 
 - 若受影响行数为 `0`，说明时段已满或不可预约
-- 对收费预约，在同一事务内执行钱包余额扣减、写入钱包流水、写入 `bookings`
-- 任一步失败时需要回滚事务，避免扣款成功但预约失败
+- 容量增加和写入 `bookings` 在同一事务内执行，插入失败时容量更新一并回滚
+- 后续收费预约在同一事务内增加钱包余额扣减和钱包流水
 
 ### 5.2 模拟支付防重复扣款
 
@@ -303,8 +308,8 @@ where user_id = ?
 
 ### 5.3 取消预约回补名额和退款
 
-- 仅 `BOOKED` 状态可取消
-- 取消成功后事务内执行 `reserved_count = reserved_count - 1`
+- 仅 `BOOKED` 状态可取消，使用条件更新保证并发取消只有一次成功
+- 取消成功后事务内执行带 `reserved_count > 0` 条件的名额回补
 - 若预约已支付且未退款，则事务内执行余额退款并写入退款流水
 - 防止重复取消导致计数异常
 - 防止重复退款导致余额异常
