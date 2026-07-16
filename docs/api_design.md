@@ -289,7 +289,7 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 
 ### 4.4 `POST /bookings`
 
-说明：普通用户预约某个免费时段。
+说明：普通用户预约某个时段。当前代码已支持免费时段；下一模块按本节设计开放收费时段。
 
 权限：`USER`。
 
@@ -308,7 +308,9 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 - `slotId` 必须是正整数。
 - 地点必须为 `ACTIVE` 且 `bookingEnabled=true`。
 - 时段必须为 `OPEN`，且开始时间尚未到达。
-- 当前只开放价格为 `0` 的免费时段；收费时段等待钱包模块。
+- 当前实现只开放价格为 `0` 的免费时段；收费时段暂返回 `BOOKING_PAYMENT_REQUIRED`。
+- 目标设计中，收费时段价格表示预付消费金额，不是额外预约手续费。
+- 收费预约将在同一事务内完成名额占用、钱包扣款、支付流水、预约记录和消费凭证创建。
 - 容量通过数据库条件更新原子增加，容量增加和预约记录插入处于同一事务。
 - 同一用户与时段只能存在一条预约记录，业务校验与数据库唯一键共同防重。
 
@@ -330,6 +332,29 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
     "cancelReason": null,
     "bookedAt": "2026-07-16T15:30:00",
     "cancelledAt": null
+  }
+}
+```
+
+收费预约目标响应会增加消费凭证：
+
+```json
+{
+  "code": "0",
+  "message": "success",
+  "data": {
+    "id": "5002",
+    "bookingNo": "BK7E4F27C981D5488AB33D9C9B608E40B2",
+    "status": "BOOKED",
+    "payStatus": "PAID",
+    "paidAmount": 20.00,
+    "voucher": {
+      "status": "AVAILABLE",
+      "consumptionCode": "QM7K9P2X5A8",
+      "amount": 20.00,
+      "validFrom": "2026-07-20T18:30:00",
+      "validUntil": "2026-07-20T20:00:00"
+    }
   }
 }
 ```
@@ -357,6 +382,8 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 
 首版返回列表，不分页；结果按预约时间和预约 ID 倒序排列，只返回当前登录用户的数据。响应中的 `id`、`userId`、`venueId`、`slotId` 均使用字符串。
 
+收费预约开放后，预约所属用户可在响应中看到完整消费码、预付金额和凭证状态。商家预约列表不得批量返回完整消费码，核销时由用户出示并由商家提交。
+
 ### 4.6 `PATCH /bookings/{id}/cancel`
 
 说明：取消预约。
@@ -376,7 +403,10 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 - `reason` 可选，去除首尾空白后最多 255 个字符。
 - 只有 `BOOKED` 状态可以取消。
 - 普通用户只能取消自己的预约；管理员可以取消任意预约。
-- 首版仅支持免费预约取消；已进入支付流程的预约返回退款流程提示。
+- 当前实现仅支持免费预约取消；已进入支付流程的预约暂返回退款流程提示。
+- 目标设计允许在时段开始前取消凭证仍为 `AVAILABLE` 的收费预约并全额退款；退款成功时消费凭证同步变为 `VOID`。
+- 时段开始后首版不允许用户自助取消收费预约。
+- `FULFILLED`、`NO_SHOW` 或消费凭证已经 `REDEEMED` 的预约不可取消。
 - 预约状态条件更新与时段名额回补处于同一事务，并发重复取消只允许一次成功。
 
 失败场景：
@@ -386,11 +416,62 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 - 当前状态不可取消：`409 / BOOKING_STATUS_INVALID`
 - 收费预约需进入退款流程：`409 / BOOKING_REFUND_REQUIRED`
 
-## 5. 钱包与模拟支付接口
+### 4.7 `POST /venues/{venueId}/booking-vouchers/redeem`
+
+说明：商家使用用户出示的消费码核销已支付预约。
+
+权限：地点所属 `MERCHANT` 或 `ADMIN`。
+
+请求体：
+
+```json
+{
+  "consumptionCode": "QM7K9P2X5A8"
+}
+```
+
+核销规则：
+
+- 消费码必须存在并属于路径地点。
+- 预约状态必须为 `BOOKED`，支付状态必须为 `PAID`。
+- 消费凭证状态必须为 `AVAILABLE`。
+- 首版默认核销窗口为预约开始前 30 分钟至时段结束时间。
+- 核销成功时，在同一事务内把凭证改为 `REDEEMED`、预约改为 `FULFILLED`，并记录核销人和核销时间。
+- 重复请求不会重复核销；第二次返回明确的状态冲突。
+- 日志中只允许记录消费码后四位，不记录完整消费码。
+
+成功响应：
+
+```json
+{
+  "code": "0",
+  "message": "success",
+  "data": {
+    "bookingId": "5002",
+    "bookingNo": "BK7E4F27C981D5488AB33D9C9B608E40B2",
+    "status": "FULFILLED",
+    "payStatus": "PAID",
+    "paidAmount": 20.00,
+    "voucherStatus": "REDEEMED",
+    "redeemedBy": "2001",
+    "redeemedAt": "2026-07-20T18:45:00"
+  }
+}
+```
+
+失败场景：
+
+- 消费码不存在：`404 / CONSUMPTION_CODE_NOT_FOUND`
+- 商家跨店核销：`403 / RESOURCE_NOT_OWNED`
+- 消费码已核销、作废或过期：`409 / CONSUMPTION_CODE_STATUS_INVALID`
+- 不在核销时间窗口：`409 / CONSUMPTION_CODE_OUT_OF_WINDOW`
+- 预约或支付状态不允许核销：`409 / BOOKING_STATUS_INVALID`
+
+## 5. 钱包、预付消费与退款接口
 
 ### 5.1 `GET /wallets/my`
 
-说明：查看当前用户的钱包余额。
+说明：查看当前用户的钱包余额。钱包余额用于预付收费时段对应的消费金额。
 
 权限：`USER`。
 
@@ -558,6 +639,7 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 | `POST /bookings` | 拒绝 | 允许 | 拒绝 | 拒绝 |
 | `GET /bookings/my` | 拒绝 | 允许 | 拒绝 | 可额外提供后台接口 |
 | `PATCH /bookings/{id}/cancel` | 拒绝 | 仅本人 | 拒绝 | 允许 |
+| `POST /venues/{venueId}/booking-vouchers/redeem` | 拒绝 | 拒绝 | 仅自己 | 允许 |
 | `GET /wallets/my` | 拒绝 | 允许 | 可选 | 可选 |
 | `POST /wallets/my/recharge` | 拒绝 | 允许 | 可选 | 拒绝 |
 | `GET /wallets/my/transactions` | 拒绝 | 允许 | 可选 | 可选 |
@@ -593,6 +675,9 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 - `BOOKING_STATUS_INVALID`
 - `BOOKING_PAYMENT_REQUIRED`
 - `BOOKING_REFUND_REQUIRED`
+- `CONSUMPTION_CODE_NOT_FOUND`
+- `CONSUMPTION_CODE_STATUS_INVALID`
+- `CONSUMPTION_CODE_OUT_OF_WINDOW`
 - `WALLET_NOT_FOUND`
 - `WALLET_FROZEN`
 - `WALLET_BALANCE_NOT_ENOUGH`
@@ -612,4 +697,5 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 - 商家越权访问其他商家地点
 - 高并发预约重复提交与容量上限控制
 - 余额不足、重复扣款、取消退款、并发支付一致性
+- 消费码生成、跨店核销、重复核销、核销时间窗口和退款作废
 - 号码状态非法流转拦截
