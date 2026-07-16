@@ -110,7 +110,7 @@ public class VenueService {
         return VenueResponse.from(venue);
     }
 
-    private Venue getRequiredVenue(Long id) {
+    public Venue getRequiredVenue(Long id) {
         Venue venue = venueMapper.selectById(id);
         if (venue == null) {
             throw new BusinessException(HttpStatus.NOT_FOUND, "VENUE_NOT_FOUND", "地点不存在");
@@ -141,7 +141,7 @@ public class VenueService {
         }
     }
 
-    private void requireOwnerOrAdmin(Venue venue, AuthenticatedUser principal) {
+    public void requireOwnerOrAdmin(Venue venue, AuthenticatedUser principal) {
         requireManager(principal);
         if (principal.role() == UserRole.ADMIN) {
             return;

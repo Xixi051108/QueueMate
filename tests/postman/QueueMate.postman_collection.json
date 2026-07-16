@@ -414,6 +414,178 @@
             "header": [],
             "url": "{{baseUrl}}/api/v1/venues/999999999"
           }
+        },
+        {
+          "name": "List booking slots publicly",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('slot list returns 200', () => pm.response.to.have.status(200));",
+                  "pm.test('slot list is an array', () => pm.expect(body.data).to.be.an('array'));",
+                  "pm.test('open filter is respected', () => body.data.forEach(slot => pm.expect(slot.status).to.eql('OPEN')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/venues/4002/slots?status=OPEN"
+          }
+        },
+        {
+          "name": "Reject USER slot creation",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const date = new Date();",
+                  "date.setUTCDate(date.getUTCDate() + 30);",
+                  "pm.collectionVariables.set('slotDate', date.toISOString().slice(0, 10));",
+                  "const second = String(Math.floor(Date.now() / 1000) % 59).padStart(2, '0');",
+                  "pm.collectionVariables.set('slotStartTime', `09:00:${second}`);",
+                  "pm.collectionVariables.set('slotEndTime', `10:00:${second}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('USER slot create returns 403', () => pm.response.to.have.status(403));",
+                  "pm.test('slot forbidden code is stable', () => pm.expect(body.code).to.eql('AUTH_FORBIDDEN'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"slotDate\": \"{{slotDate}}\",\n  \"startTime\": \"{{slotStartTime}}\",\n  \"endTime\": \"{{slotEndTime}}\",\n  \"capacity\": 12,\n  \"price\": 20.00\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/venues/4002/slots"
+          }
+        },
+        {
+          "name": "Create owned booking slot",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('merchant slot create returns 201', () => pm.response.to.have.status(201));",
+                  "pm.test('new slot is open and empty', () => { pm.expect(body.data.status).to.eql('OPEN'); pm.expect(body.data.reservedCount).to.eql(0); });",
+                  "pm.test('available capacity equals capacity', () => pm.expect(body.data.availableCapacity).to.eql(body.data.capacity));",
+                  "pm.collectionVariables.set('slotId', body.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{merchantToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"slotDate\": \"{{slotDate}}\",\n  \"startTime\": \"{{slotStartTime}}\",\n  \"endTime\": \"{{slotEndTime}}\",\n  \"capacity\": 12,\n  \"price\": 20.00\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/venues/4002/slots"
+          }
+        },
+        {
+          "name": "Reject duplicate booking slot",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('duplicate slot returns 409', () => pm.response.to.have.status(409));",
+                  "pm.test('duplicate slot code is stable', () => pm.expect(body.code).to.eql('BOOKING_SLOT_EXISTS'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{merchantToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"slotDate\": \"{{slotDate}}\",\n  \"startTime\": \"{{slotStartTime}}\",\n  \"endTime\": \"{{slotEndTime}}\",\n  \"capacity\": 12,\n  \"price\": 20.00\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/venues/4002/slots"
+          }
+        },
+        {
+          "name": "Close owned booking slot",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('merchant slot close returns 200', () => pm.response.to.have.status(200));",
+                  "pm.test('slot is closed', () => pm.expect(body.data.status).to.eql('CLOSED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{merchantToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CLOSED\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/venues/4002/slots/{{slotId}}/status"
+          }
         }
       ]
     }
@@ -425,6 +597,22 @@
     },
     {
       "key": "venueName",
+      "value": ""
+    },
+    {
+      "key": "slotDate",
+      "value": ""
+    },
+    {
+      "key": "slotStartTime",
+      "value": ""
+    },
+    {
+      "key": "slotEndTime",
+      "value": ""
+    },
+    {
+      "key": "slotId",
       "value": ""
     }
   ]

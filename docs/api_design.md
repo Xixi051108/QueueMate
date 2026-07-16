@@ -212,13 +212,21 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 
 说明：查看某地点的预约时段。
 
-查询参数建议：
+查询参数：
 
-- `dateFrom`
-- `dateTo`
-- `status`
+- `dateFrom`：可选，ISO 日期，筛选该日期及之后的时段
+- `dateTo`：可选，ISO 日期，筛选该日期及之前的时段
+- `status`：可选，`OPEN` / `CLOSED`
 
 权限：公开接口。
+
+规则：
+
+- `dateFrom` 不得晚于 `dateTo`。
+- 地点不存在返回 `404 / VENUE_NOT_FOUND`。
+- 结果按日期、开始时间、时段 ID 升序返回。
+- 响应提供 `reservedCount` 和派生字段 `availableCapacity`。
+- `id`、`venueId`、`createdBy` 使用字符串表示，避免 JavaScript 丢失 64 位整数精度。
 
 ### 4.2 `POST /venues/{id}/slots`
 
@@ -226,7 +234,7 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 
 权限：地点所属 `MERCHANT` 或 `ADMIN`。
 
-请求体建议：
+请求体：
 
 ```json
 {
@@ -238,7 +246,48 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 }
 ```
 
-### 4.3 `POST /bookings`
+规则：
+
+- 权限为地点所属 `MERCHANT` 或 `ADMIN`。
+- 地点必须为 `ACTIVE` 且 `bookingEnabled=true`。
+- `slotDate` 不得早于今天。
+- `capacity` 必须大于 `0`。
+- `startTime` 必须早于 `endTime`。
+- `price` 不得小于 `0`，最多保留两位小数。
+- 新建时段的 `reservedCount` 固定为 `0`，状态固定为 `OPEN`。
+- 同一地点、日期、开始时间和结束时间组合不可重复。
+
+失败场景：
+
+- 参数不合法：`400 / PARAM_INVALID`
+- 时间范围不合法：`400 / BOOKING_SLOT_TIME_INVALID`
+- 地点已停用：`409 / VENUE_INACTIVE`
+- 地点未启用预约：`409 / VENUE_BOOKING_DISABLED`
+- 重复时段：`409 / BOOKING_SLOT_EXISTS`
+- 商家操作其他商家的地点：`403 / RESOURCE_NOT_OWNED`
+
+### 4.3 `PATCH /venues/{venueId}/slots/{slotId}/status`
+
+说明：打开或关闭预约时段。
+
+权限：地点所属 `MERCHANT` 或 `ADMIN`。
+
+请求体：
+
+```json
+{
+  "status": "CLOSED"
+}
+```
+
+规则：
+
+- 状态仅允许 `OPEN` 或 `CLOSED`。
+- 关闭时段不会修改已有预约数。
+- 重新打开时，地点仍必须为 `ACTIVE` 且启用预约。
+- 路径中的时段必须属于对应地点，否则统一返回 `404 / BOOKING_SLOT_NOT_FOUND`。
+
+### 4.4 `POST /bookings`
 
 说明：用户预约某个时段。
 
@@ -276,7 +325,7 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 - 重复预约
 - 余额不足
 
-### 4.4 `GET /bookings/my`
+### 4.5 `GET /bookings/my`
 
 说明：查看当前用户的预约记录。
 
@@ -288,7 +337,7 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 - `pageNum`
 - `pageSize`
 
-### 4.5 `PATCH /bookings/{id}/cancel`
+### 4.6 `PATCH /bookings/{id}/cancel`
 
 说明：取消预约。
 
@@ -470,6 +519,7 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 | `PATCH /venues/{id}/status` | 拒绝 | 拒绝 | 仅自己 | 允许 |
 | `GET /venues/{id}/slots` | 允许 | 允许 | 允许 | 允许 |
 | `POST /venues/{id}/slots` | 拒绝 | 拒绝 | 仅自己 | 允许 |
+| `PATCH /venues/{venueId}/slots/{slotId}/status` | 拒绝 | 拒绝 | 仅自己 | 允许 |
 | `POST /bookings` | 拒绝 | 允许 | 拒绝 | 视实现而定 |
 | `GET /bookings/my` | 拒绝 | 允许 | 拒绝 | 可额外提供后台接口 |
 | `PATCH /bookings/{id}/cancel` | 拒绝 | 仅本人 | 拒绝 | 允许 |
@@ -494,11 +544,14 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 - `USER_DISABLED`
 - `VENUE_NOT_FOUND`
 - `VENUE_INACTIVE`
+- `VENUE_BOOKING_DISABLED`
 - `VENUE_NAME_EXISTS`
 - `MERCHANT_INVALID`
 - `BOOKING_SLOT_NOT_FOUND`
 - `BOOKING_SLOT_CLOSED`
 - `BOOKING_SLOT_FULL`
+- `BOOKING_SLOT_EXISTS`
+- `BOOKING_SLOT_TIME_INVALID`
 - `BOOKING_DUPLICATE`
 - `BOOKING_STATUS_INVALID`
 - `WALLET_NOT_FOUND`
