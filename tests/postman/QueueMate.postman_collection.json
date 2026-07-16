@@ -174,11 +174,257 @@
           }
         }
       ]
+    },
+    {
+      "name": "Venues",
+      "item": [
+        {
+          "name": "List active venues publicly",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('venue list returns 200', () => pm.response.to.have.status(200));",
+                  "pm.test('venue list is an array', () => pm.expect(body.data).to.be.an('array'));",
+                  "pm.test('all returned venues are active', () => body.data.forEach(venue => pm.expect(venue.status).to.eql('ACTIVE')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/venues?status=ACTIVE"
+          }
+        },
+        {
+          "name": "Get venue detail publicly",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('venue detail returns 200', () => pm.response.to.have.status(200));",
+                  "pm.test('fixture venue id matches', () => pm.expect(body.data.id).to.eql('4001'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/venues/4001"
+          }
+        },
+        {
+          "name": "Reject USER venue creation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('USER create returns 403', () => pm.response.to.have.status(403));",
+                  "pm.test('forbidden code is stable', () => pm.expect(body.code).to.eql('AUTH_FORBIDDEN'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"USER cannot create this venue\",\n  \"category\": \"TEA_SHOP\",\n  \"description\": \"permission check\",\n  \"addressText\": \"mock address\",\n  \"queueEnabled\": true,\n  \"bookingEnabled\": false,\n  \"defaultPrice\": 0.00\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/venues"
+          }
+        },
+        {
+          "name": "Login merchant",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('merchant login returns 200', () => pm.response.to.have.status(200));",
+                  "pm.test('merchant role is returned', () => pm.expect(body.data.user.role).to.eql('MERCHANT'));",
+                  "pm.environment.set('merchantToken', body.data.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"merchant_tea\",\n  \"password\": \"Merchant123456\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/login"
+          }
+        },
+        {
+          "name": "Create merchant-owned venue",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set('venueName', 'Postman Venue ' + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('merchant create returns 201', () => pm.response.to.have.status(201));",
+                  "pm.test('created venue belongs to merchant fixture', () => pm.expect(body.data.merchantId).to.eql('2001'));",
+                  "pm.test('new venue is active', () => pm.expect(body.data.status).to.eql('ACTIVE'));",
+                  "pm.environment.set('venueId', body.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{merchantToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{venueName}}\",\n  \"category\": \"STUDY_ROOM\",\n  \"description\": \"created by Postman\",\n  \"addressText\": \"Postman mock address\",\n  \"queueEnabled\": false,\n  \"bookingEnabled\": true,\n  \"defaultPrice\": 12.50,\n  \"merchantId\": 2002\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/venues"
+          }
+        },
+        {
+          "name": "Update owned venue",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('merchant update returns 200', () => pm.response.to.have.status(200));",
+                  "pm.test('venue name is updated', () => pm.expect(body.data.name).to.eql(pm.collectionVariables.get('venueName') + ' Updated'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{merchantToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{venueName}} Updated\",\n  \"category\": \"STUDY_ROOM\",\n  \"description\": \"updated by Postman\",\n  \"addressText\": \"Updated mock address\",\n  \"queueEnabled\": false,\n  \"bookingEnabled\": true,\n  \"defaultPrice\": 15.00\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/venues/{{venueId}}"
+          }
+        },
+        {
+          "name": "Disable owned venue",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('merchant status update returns 200', () => pm.response.to.have.status(200));",
+                  "pm.test('venue is inactive', () => pm.expect(body.data.status).to.eql('INACTIVE'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{merchantToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"INACTIVE\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/venues/{{venueId}}/status"
+          }
+        },
+        {
+          "name": "Reject missing venue detail",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('missing venue returns 404', () => pm.response.to.have.status(404));",
+                  "pm.test('not found code is stable', () => pm.expect(body.code).to.eql('VENUE_NOT_FOUND'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/venues/999999999"
+          }
+        }
+      ]
     }
   ],
   "variable": [
     {
       "key": "registerUsername",
+      "value": ""
+    },
+    {
+      "key": "venueName",
       "value": ""
     }
   ]

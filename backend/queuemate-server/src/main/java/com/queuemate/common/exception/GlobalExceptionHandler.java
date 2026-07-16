@@ -9,7 +9,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.BindException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -33,7 +35,8 @@ public class GlobalExceptionHandler {
             BindException.class,
             ConstraintViolationException.class,
             HttpMessageNotReadableException.class,
-            MissingServletRequestParameterException.class
+            MissingServletRequestParameterException.class,
+            MethodArgumentTypeMismatchException.class
     })
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiResponse<Map<String, String>> handleValidationException(Exception ex) {
@@ -45,6 +48,12 @@ public class GlobalExceptionHandler {
             return new ApiResponse<>("PARAM_INVALID", "请求参数不合法", errors);
         }
         return ApiResponse.fail("PARAM_INVALID", "请求参数不合法");
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ApiResponse<Void> handleAccessDeniedException(AccessDeniedException ex) {
+        return ApiResponse.fail("AUTH_FORBIDDEN", "无权访问当前资源");
     }
 
     @ExceptionHandler(Exception.class)

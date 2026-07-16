@@ -121,13 +121,13 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 
 ### 3.1 `GET /venues`
 
-说明：分页或列表查询地点。
+说明：首版使用列表方式查询地点，结果按地点 ID 升序返回。
 
-查询参数建议：
+查询参数：
 
-- `category`
-- `status`
-- `keyword`
+- `category`：可选，`TEA_SHOP` / `STUDY_ROOM` / `BADMINTON_COURT`
+- `status`：可选，`ACTIVE` / `INACTIVE`
+- `keyword`：可选，同时模糊匹配名称、描述和模拟地址
 
 权限：公开接口。
 
@@ -137,13 +137,15 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 
 权限：公开接口。
 
+地点不存在时返回：`404 / VENUE_NOT_FOUND`。
+
 ### 3.3 `POST /venues`
 
 说明：创建地点。
 
 权限：`MERCHANT`、`ADMIN`。
 
-请求体建议：
+请求体：
 
 ```json
 {
@@ -153,15 +155,40 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
   "addressText": "模拟地址 1 号",
   "queueEnabled": false,
   "bookingEnabled": true,
-  "defaultPrice": 10.00
+  "defaultPrice": 10.00,
+  "merchantId": 2001
 }
 ```
+
+规则：
+
+- `MERCHANT` 创建时，归属商家固定为当前登录用户，客户端传入的 `merchantId` 不生效。
+- `ADMIN` 创建时必须传入 `merchantId`，目标账号必须是可用的 `MERCHANT`。
+- 新建地点状态固定为 `ACTIVE`。
+- 同一商家下地点名称不可重复。
+- `defaultPrice` 不得小于 `0`，最多保留两位小数。
+- 响应中的 `id` 和 `merchantId` 使用字符串表示，避免 JavaScript 丢失 64 位整数精度；路径和请求中的 ID 仍传十进制数字文本。
+
+失败场景：
+
+- 参数不合法：`400 / PARAM_INVALID`
+- 管理员未指定有效商家：`400 / MERCHANT_INVALID`
+- 同一商家已有同名地点：`409 / VENUE_NAME_EXISTS`
+- 角色无权创建：`403 / AUTH_FORBIDDEN`
 
 ### 3.4 `PUT /venues/{id}`
 
 说明：更新地点基本信息。
 
 权限：地点所属 `MERCHANT` 或 `ADMIN`。
+
+可修改名称、类别、描述、模拟地址、排队开关、预约开关和默认价格；不可通过该接口修改归属商家或状态。
+
+失败场景：
+
+- 地点不存在：`404 / VENUE_NOT_FOUND`
+- 商家操作其他商家的地点：`403 / RESOURCE_NOT_OWNED`
+- 修改后名称与同一商家的其他地点重复：`409 / VENUE_NAME_EXISTS`
 
 ### 3.5 `PATCH /venues/{id}/status`
 
@@ -176,6 +203,8 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
   "status": "INACTIVE"
 }
 ```
+
+状态仅允许 `ACTIVE` 或 `INACTIVE`。地点不存在返回 `404 / VENUE_NOT_FOUND`，商家越权返回 `403 / RESOURCE_NOT_OWNED`。
 
 ## 4. 时段预约接口
 
@@ -465,6 +494,8 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 - `USER_DISABLED`
 - `VENUE_NOT_FOUND`
 - `VENUE_INACTIVE`
+- `VENUE_NAME_EXISTS`
+- `MERCHANT_INVALID`
 - `BOOKING_SLOT_NOT_FOUND`
 - `BOOKING_SLOT_CLOSED`
 - `BOOKING_SLOT_FULL`
