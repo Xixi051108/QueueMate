@@ -180,10 +180,11 @@ PATCH /api/v1/bookings/{id}/cancel
 - 校验地点启用、预约开关、时段开放和时段尚未开始。
 - 使用数据库条件更新原子执行 `reserved_count + 1`，并同时校验地点和时段状态。
 - 容量增加与预约记录插入处于同一事务，插入失败时容量自动回滚。
-- 使用业务预检查和 `uk_bookings_user_slot` 唯一键双重阻止重复预约。
+- 使用业务预检查和 `uk_bookings_user_active_slot` 唯一键双重阻止同一用户重复持有同一时段的 `BOOKED` 预约。
 - `GET /bookings/my` 仅返回当前用户数据，支持预约状态筛选。
 - 用户可取消本人预约，管理员可取消任意预约，商家不可取消。
 - 取消使用 `BOOKED -> CANCELLED` 条件更新，成功后在同一事务内原子回补名额。
+- 取消记录继续保留；只要时段仍开放、未开始且有余量，用户可以重新预约同一时段并创建一条新预约记录。
 - 并发重复取消只有一个请求成功，不会重复回补名额。
 - 预约响应中的 `id`、`userId`、`venueId`、`slotId` 使用字符串。
 - 不存在路径和不支持的 HTTP 方法已统一返回 JSON `404/RESOURCE_NOT_FOUND` 与 `405/METHOD_NOT_ALLOWED`。
@@ -232,7 +233,7 @@ cd D:\QueueMate\backend\queuemate-server
 最后验证结果：
 
 ```text
-Tests run: 125, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 126, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 
@@ -246,7 +247,7 @@ BUILD SUCCESS
 - `VenueControllerSecurityTest`：6 个
 - `BookingSlotServiceTest`：13 个
 - `BookingSlotControllerSecurityTest`：7 个
-- `BookingServiceTest`：17 个
+- `BookingServiceTest`：18 个
 - `BookingControllerSecurityTest`：10 个
 - `WalletServiceTest`：8 个
 - `WalletControllerSecurityTest`：4 个
@@ -293,6 +294,7 @@ BUILD SUCCESS
 - 创建容量为 3 的临时免费时段，12 个不同用户并发预约，最终 3 个成功、9 个返回 `409/BOOKING_SLOT_FULL`。
 - 并发结束后 `reserved_count=3`，有效 `BOOKED` 数量为 3，重复用户时段组合为 0。
 - 获胜用户重复预约返回 `409/BOOKING_DUPLICATE`。
+- 单元回归已验证取消预约后可重新预约同一时段；真实本地库需先执行 `sql/migrations/20260717_allow_booking_rebook.sql` 再联调。
 - 同一预约并发取消两次时，1 次成功、1 次返回 `409/BOOKING_STATUS_INVALID`。
 - 取消释放名额后，先前失败用户可成功预约，最终容量和有效预约数继续一致。
 - 免费预约阶段曾验证收费时段拒绝；当前版本已升级为钱包付费预约。
@@ -318,7 +320,7 @@ Postman 资产：
 
 - `tests/postman/QueueMate.postman_collection.json`
 - `tests/postman/QueueMate.local.postman_environment.json`
-- 当前共 42 个请求，JSON 可正常解析。
+- 当前共 43 个请求，JSON 可正常解析。
 - 已加入地点公开查询、USER 禁止创建、商家创建/更新/停用和不存在地点断言。
 - 已加入时段公开查询、USER 禁止创建、商家创建、重复时段和关闭时段断言。
 - 已加入钱包、预约、退款、消费码、排队状态机、管理员余额调整和繁忙统计断言。
@@ -500,4 +502,4 @@ cd D:\QueueMate\backend\queuemate-server
 & 'D:\Maven\apache-maven-3.9.16\bin\mvn.cmd' test
 ```
 
-最后检查健康接口。当前基线应看到 125 个测试全部通过，认证、地点、时段、预约、钱包、消费码、排队和统计接口均可用，并且项目中不存在 `password-strength`、`PasswordPolicy` 或 `PASSWORD_WEAK`。
+最后检查健康接口。当前基线应看到 126 个测试全部通过，认证、地点、时段、预约、钱包、消费码、排队和统计接口均可用，并且项目中不存在 `password-strength`、`PasswordPolicy` 或 `PASSWORD_WEAK`。

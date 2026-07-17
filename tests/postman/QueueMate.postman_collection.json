@@ -935,6 +935,40 @@
           }
         },
         {
+          "name": "Rebook cancelled free slot",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('rebooking a cancelled slot returns 201', () => pm.response.to.have.status(201));",
+                  "pm.test('rebooking creates a new active booking', () => { pm.expect(body.data.status).to.eql('BOOKED'); pm.expect(body.data.slotId).to.eql(pm.collectionVariables.get('freeSlotId')); pm.expect(body.data.id).to.not.eql(pm.collectionVariables.get('bookingId')); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"slotId\": \"{{freeSlotId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/bookings"
+          }
+        },
+        {
           "name": "Create paid booking with voucher",
           "event": [
             {

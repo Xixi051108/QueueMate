@@ -218,11 +218,7 @@ public class BookingService {
     }
 
     private void ensureNotDuplicate(Long userId, Long slotId) {
-        long count = bookingMapper.selectCount(
-                Wrappers.<Booking>lambdaQuery()
-                        .eq(Booking::getUserId, userId)
-                        .eq(Booking::getSlotId, slotId)
-        );
+        long count = bookingMapper.countActiveBooking(userId, slotId);
         if (count > 0) {
             throw duplicateBooking();
         }

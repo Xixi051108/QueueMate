@@ -111,7 +111,8 @@
 
 约束与索引：
 
-- 唯一索引：`uk_bookings_user_slot (user_id, slot_id)`
+- 生成列：`active_slot_id = case when status = 'BOOKED' then slot_id else null end`
+- 唯一索引：`uk_bookings_user_active_slot (user_id, active_slot_id)`
 - 唯一索引：`uk_bookings_no (booking_no)`
 - 普通索引：`idx_bookings_venue_id (venue_id)`
 - 普通索引：`idx_bookings_status (status)`
@@ -119,7 +120,7 @@
 设计说明：
 
 - `venue_id` 作为冗余字段，方便按地点维度统计和查询
-- 重复预约通过唯一约束和业务校验双重控制
+- 有效重复预约通过唯一约束和业务校验双重控制；`CANCELLED` 历史记录不占用有效唯一键
 - 免费预约成功后 `pay_status` 为 `NOT_REQUIRED`、`paid_amount` 为 `0`
 - 收费预约成功后 `pay_status` 应为 `PAID`，`paid_amount` 表示消费码可抵扣或兑换的金额
 
@@ -331,7 +332,7 @@
 
 核心思路：
 
-- 先校验 `bookings(user_id, slot_id)` 是否已存在，并由唯一索引兜住并发竞态
+- 先校验 `bookings(user_id, slot_id, status = 'BOOKED')` 是否已存在，并由有效预约唯一索引兜住并发竞态
 - 免费和收费预约都使用同一套容量原子更新与重复预约约束
 - 再执行带条件的时段容量原子更新；实际 SQL 同时校验时段开放、余量充足、地点启用且支持预约，例如：
 
@@ -354,7 +355,7 @@ where bs.id = ?
 
 核心思路：
 
-- `bookings(user_id, slot_id)` 控制重复预约
+- `bookings(user_id, active_slot_id)` 只约束 `BOOKED` 状态，取消后允许重新预约且保留历史记录
 - `wallet_transactions(biz_type, biz_no, type)` 可作为幂等设计参考
 - 扣款时使用条件更新保证余额不为负，例如：
 

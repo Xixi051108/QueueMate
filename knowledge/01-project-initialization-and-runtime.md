@@ -270,7 +270,7 @@ GET /api/v1/health
 | 约束 | 解决的问题 |
 | --- | --- |
 | `users.username` 唯一 | 防止用户名重复 |
-| `bookings(user_id, slot_id)` 唯一 | 防止同一用户重复预约同一时段 |
+| `bookings(user_id, active_slot_id)` 唯一 | 防止同一用户重复持有同一时段的 `BOOKED` 预约，同时允许保留取消历史后重新预约 |
 | 时段四字段唯一 | 防止地点出现完全重复的时段 |
 | 每日排队号唯一 | 防止同一地点同一天出现重复号码 |
 | `wallets.user_id` 唯一 | 保证一个用户只有一个钱包 |
@@ -510,4 +510,3 @@ knowledge/02-authentication-and-jwt.md
 10. 为什么生产环境不能使用会删除表的初始化脚本？
 11. `ERR_CONNECTION_REFUSED` 与 HTTP 500 有什么区别？
 12. 为什么真实数据库连接不应该使用 root 账号？
-

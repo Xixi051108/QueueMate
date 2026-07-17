@@ -58,7 +58,9 @@ where bs.id = ?
 本轮使用两层保护：
 
 - Service 预检查，尽早返回可读的 `BOOKING_DUPLICATE`。
-- 数据库唯一键 `uk_bookings_user_slot (user_id, slot_id)` 处理并发竞态。
+- 数据库生成列 `active_slot_id` 只在状态为 `BOOKED` 时取 `slot_id`，唯一键 `uk_bookings_user_active_slot (user_id, active_slot_id)` 处理并发竞态。
+
+取消后生成列变为 `NULL`。MySQL 唯一索引允许多条 `NULL`，因此历史取消记录可以保留，用户也能重新预约同一时段；新的有效预约仍会再次占用唯一键。
 
 数据库抛出的重复键异常也映射为 `409/BOOKING_DUPLICATE`，并由事务回滚已经增加的名额。
 

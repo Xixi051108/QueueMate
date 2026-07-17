@@ -3,6 +3,7 @@ package com.queuemate.booking;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -64,7 +65,7 @@ class BookingServiceTest {
         BookingSlot slot = openFreeSlot();
         when(bookingSlotMapper.selectById(5001L)).thenReturn(slot);
         when(venueService.getRequiredVenue(4002L)).thenReturn(activeVenue());
-        when(bookingMapper.selectCount(any())).thenReturn(0L);
+        when(bookingMapper.countActiveBooking(3001L, 5001L)).thenReturn(0L);
         when(bookingSlotMapper.reserveCapacity(5001L)).thenReturn(1);
         when(bookingMapper.insert(any(Booking.class))).thenAnswer(invocation -> {
             Booking booking = invocation.getArgument(0);
@@ -95,7 +96,7 @@ class BookingServiceTest {
     void duplicateBookingIsRejectedBeforeCapacityReservation() {
         when(bookingSlotMapper.selectById(5001L)).thenReturn(openFreeSlot());
         when(venueService.getRequiredVenue(4002L)).thenReturn(activeVenue());
-        when(bookingMapper.selectCount(any())).thenReturn(1L);
+        when(bookingMapper.countActiveBooking(3001L, 5001L)).thenReturn(1L);
 
         assertBusinessError(
                 () -> bookingService.create(new BookingCreateRequest(5001L), userPrincipal(3001L)),
@@ -106,12 +107,35 @@ class BookingServiceTest {
     }
 
     @Test
+    void cancelledHistoryAllowsRebookingSameSlot() {
+        when(bookingSlotMapper.selectById(5001L)).thenReturn(openFreeSlot());
+        when(venueService.getRequiredVenue(4002L)).thenReturn(activeVenue());
+        when(bookingMapper.countActiveBooking(3001L, 5001L)).thenReturn(0L);
+        when(bookingSlotMapper.reserveCapacity(5001L)).thenReturn(1);
+        when(bookingMapper.insert(any(Booking.class))).thenAnswer(invocation -> {
+            Booking booking = invocation.getArgument(0);
+            booking.setId(6103L);
+            return 1;
+        });
+
+        BookingResponse response = bookingService.create(
+                new BookingCreateRequest(5001L),
+                userPrincipal(3001L)
+        );
+
+        assertThat(response.id()).isEqualTo(6103L);
+        assertThat(response.status()).isEqualTo(BookingStatus.BOOKED);
+        verify(bookingMapper).countActiveBooking(eq(3001L), eq(5001L));
+        verify(bookingSlotMapper).reserveCapacity(5001L);
+    }
+
+    @Test
     void paidSlotChargesWalletAndCreatesVoucher() {
         BookingSlot slot = openFreeSlot();
         slot.setPrice(new BigDecimal("20.00"));
         when(bookingSlotMapper.selectById(5001L)).thenReturn(slot);
         when(venueService.getRequiredVenue(4002L)).thenReturn(activeVenue());
-        when(bookingMapper.selectCount(any())).thenReturn(0L);
+        when(bookingMapper.countActiveBooking(3001L, 5001L)).thenReturn(0L);
         when(bookingSlotMapper.reserveCapacity(5001L)).thenReturn(1);
         when(bookingMapper.insert(any(Booking.class))).thenAnswer(invocation -> {
             Booking booking = invocation.getArgument(0);
@@ -144,7 +168,7 @@ class BookingServiceTest {
         slot.setPrice(new BigDecimal("20.00"));
         when(bookingSlotMapper.selectById(5001L)).thenReturn(slot);
         when(venueService.getRequiredVenue(4002L)).thenReturn(activeVenue());
-        when(bookingMapper.selectCount(any())).thenReturn(0L);
+        when(bookingMapper.countActiveBooking(3001L, 5001L)).thenReturn(0L);
         when(bookingSlotMapper.reserveCapacity(5001L)).thenReturn(1);
         when(walletService.chargeBooking(any(), any(), any()))
                 .thenThrow(new BusinessException(
@@ -195,7 +219,7 @@ class BookingServiceTest {
         BookingSlot slot = openFreeSlot();
         when(bookingSlotMapper.selectById(5001L)).thenReturn(slot, slot);
         when(venueService.getRequiredVenue(4002L)).thenReturn(activeVenue());
-        when(bookingMapper.selectCount(any())).thenReturn(0L);
+        when(bookingMapper.countActiveBooking(3001L, 5001L)).thenReturn(0L);
         when(bookingSlotMapper.reserveCapacity(5001L)).thenReturn(0);
 
         assertBusinessError(
@@ -211,7 +235,7 @@ class BookingServiceTest {
         BookingSlot slot = openFreeSlot();
         when(bookingSlotMapper.selectById(5001L)).thenReturn(slot);
         when(venueService.getRequiredVenue(4002L)).thenReturn(activeVenue());
-        when(bookingMapper.selectCount(any())).thenReturn(0L);
+        when(bookingMapper.countActiveBooking(3001L, 5001L)).thenReturn(0L);
         when(bookingSlotMapper.reserveCapacity(5001L)).thenReturn(1);
         when(bookingMapper.insert(any(Booking.class)))
                 .thenThrow(new DuplicateKeyException("duplicate user and slot"));

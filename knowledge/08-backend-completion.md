@@ -117,7 +117,7 @@ where id = ?
 自动化测试：
 
 ```text
-Tests run: 125, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 126, Failures: 0, Errors: 0, Skipped: 0
 ```
 
 真实 MySQL 并发取号：

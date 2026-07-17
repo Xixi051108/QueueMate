@@ -4,10 +4,23 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import java.time.LocalDateTime;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
 @Mapper
 public interface BookingMapper extends BaseMapper<Booking> {
+
+    @Select("""
+            select count(*)
+            from bookings
+            where user_id = #{userId}
+              and slot_id = #{slotId}
+              and status = 'BOOKED'
+            """)
+    long countActiveBooking(
+            @Param("userId") Long userId,
+            @Param("slotId") Long slotId
+    );
 
     @Update("""
             update bookings

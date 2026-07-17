@@ -96,7 +96,10 @@ create table bookings (
   cancelled_at datetime null,
   refunded_at datetime null,
   updated_at datetime not null default current_timestamp on update current_timestamp,
-  unique key uk_bookings_user_slot (user_id, slot_id),
+  active_slot_id bigint generated always as (
+    case when status = 'BOOKED' then slot_id else null end
+  ) stored,
+  unique key uk_bookings_user_active_slot (user_id, active_slot_id),
   unique key uk_bookings_no (booking_no),
   key idx_bookings_venue_id (venue_id),
   key idx_bookings_status (status),

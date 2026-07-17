@@ -366,7 +366,8 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 - 时段已关闭：`409 / BOOKING_SLOT_CLOSED`
 - 时段已开始或已过期：`409 / BOOKING_SLOT_EXPIRED`
 - 时段容量已满：`409 / BOOKING_SLOT_FULL`
-- 重复预约：`409 / BOOKING_DUPLICATE`
+- 已存在同一用户、同一时段的 `BOOKED` 预约：`409 / BOOKING_DUPLICATE`
+- 历史预约为 `CANCELLED` 时允许重新预约，并创建新的预约记录
 - 钱包不存在或冻结：`404 / WALLET_NOT_FOUND`、`409 / WALLET_FROZEN`
 - 钱包余额不足：`409 / WALLET_BALANCE_NOT_ENOUGH`
 - 重复扣款：`409 / PAYMENT_DUPLICATE`
