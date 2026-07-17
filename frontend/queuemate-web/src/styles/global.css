@@ -1,0 +1,156 @@
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  background: var(--qm-canvas);
+  color: var(--qm-ink-900);
+  font-family: var(--qm-font-sans);
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: var(--qm-canvas);
+}
+
+button,
+a,
+[role="button"] {
+  touch-action: manipulation;
+}
+
+a {
+  color: var(--qm-primary-600);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--qm-primary-700);
+}
+
+:focus-visible {
+  outline: 3px solid rgba(23, 107, 156, 0.28);
+  outline-offset: 2px;
+}
+
+.page {
+  display: grid;
+  gap: 24px;
+}
+
+.page-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.page-heading h1 {
+  margin: 0;
+  font-size: clamp(26px, 4vw, 30px);
+  line-height: 1.25;
+}
+
+.page-heading p {
+  margin: 8px 0 0;
+  color: var(--qm-ink-500);
+  line-height: 1.6;
+}
+
+.surface {
+  border: 1px solid var(--qm-line-200);
+  border-radius: var(--qm-radius-md);
+  background: var(--qm-surface);
+}
+
+.data-value {
+  font-family: var(--qm-font-data);
+  font-variant-numeric: tabular-nums;
+}
+
+.muted {
+  color: var(--qm-ink-500);
+}
+
+.section-title {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.4;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  padding: 16px;
+}
+
+.filter-field {
+  min-width: 160px;
+}
+
+.filter-field--grow {
+  flex: 1 1 240px;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--qm-ink-700);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.el-button,
+.el-input__wrapper,
+.el-select__wrapper {
+  min-height: 40px;
+}
+
+.el-button + .el-button {
+  margin-left: 8px;
+}
+
+.el-card {
+  --el-card-border-radius: var(--qm-radius-md);
+}
+
+@media (max-width: 767px) {
+  .page {
+    gap: 20px;
+  }
+
+  .page-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .filters {
+    align-items: stretch;
+  }
+
+  .filter-field,
+  .filter-field--grow {
+    width: 100%;
+  }
+
+  .el-button {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

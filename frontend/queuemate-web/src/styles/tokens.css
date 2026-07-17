@@ -1,0 +1,41 @@
+:root {
+  --qm-primary-700: #124e78;
+  --qm-primary-600: #176b9c;
+  --qm-primary-100: #dceef7;
+  --qm-primary-050: #f0f7fb;
+  --qm-ink-900: #142b3a;
+  --qm-ink-700: #38505f;
+  --qm-ink-500: #667a86;
+  --qm-line-300: #cad5db;
+  --qm-line-200: #dce4e8;
+  --qm-surface: #ffffff;
+  --qm-canvas: #f5f7f8;
+  --qm-success-700: #18734a;
+  --qm-success-100: #dcf3e7;
+  --qm-warning-700: #a64b08;
+  --qm-warning-100: #fce8d2;
+  --qm-danger-700: #b42318;
+  --qm-danger-100: #fde3e1;
+  --qm-info-700: #2458a6;
+  --qm-info-100: #e2ebfa;
+  --qm-font-sans: "Noto Sans SC", "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif;
+  --qm-font-data: "DIN Alternate", "Roboto Mono", Consolas, monospace;
+  --qm-radius-sm: 4px;
+  --qm-radius-md: 8px;
+  --qm-radius-lg: 12px;
+  --qm-shadow-raised: 0 8px 24px rgba(20, 43, 58, 0.08);
+  --qm-shadow-overlay: 0 16px 40px rgba(20, 43, 58, 0.16);
+
+  --el-color-primary: var(--qm-primary-600);
+  --el-color-primary-dark-2: var(--qm-primary-700);
+  --el-color-success: var(--qm-success-700);
+  --el-color-warning: var(--qm-warning-700);
+  --el-color-danger: var(--qm-danger-700);
+  --el-border-radius-base: 6px;
+  --el-border-color: var(--qm-line-200);
+  --el-text-color-primary: var(--qm-ink-900);
+  --el-text-color-regular: var(--qm-ink-700);
+  --el-text-color-secondary: var(--qm-ink-500);
+  --el-bg-color-page: var(--qm-canvas);
+  --el-font-family: var(--qm-font-sans);
+}

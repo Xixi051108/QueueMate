@@ -96,3 +96,29 @@ GET http://localhost:8080/api/v1/health
 可在 VS Code 的 Run and Debug 面板直接启动后端。
 
 启动调试时同样会弹窗要求输入本机 MySQL 密码。
+
+## 7. 前端启动
+
+前端使用 Vue3、Vite、Element Plus、Axios 和 pnpm：
+
+```powershell
+cd D:\QueueMate\frontend\queuemate-web
+pnpm install
+pnpm dev
+```
+
+默认访问地址：
+
+```text
+http://localhost:5173
+```
+
+开发服务器把 `/api` 代理到 `http://localhost:8080`。如需使用其他 API 地址，可复制 `.env.example` 并设置 `VITE_API_BASE_URL`。
+
+生产构建：
+
+```powershell
+pnpm build
+```
+
+前端启动前应先检查后端健康接口。禁止把 `DB_PASSWORD`、JWT 或真实账号密码写入前端环境文件。
