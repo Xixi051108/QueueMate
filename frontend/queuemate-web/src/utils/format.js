@@ -52,10 +52,15 @@ const labels = {
   PAYMENT: '预约支付',
   REFUND: '预约退款',
   ADJUSTMENT: '余额调整',
-  MILK_TEA: '奶茶店',
+  TEA_SHOP: '奶茶店',
   STUDY_ROOM: '自习室',
-  BADMINTON: '羽毛球场',
-  OTHER: '其他场所',
+  BADMINTON_COURT: '羽毛球场',
+  USER: '普通用户',
+  MERCHANT: '商家',
+  ADMIN: '管理员',
+  SUCCESS: '成功',
+  FAILED: '失败',
+  UNPAID: '未支付',
 }
 
 export function labelOf(value) {
@@ -63,9 +68,17 @@ export function labelOf(value) {
 }
 
 export function statusType(value) {
-  if (['ACTIVE', 'OPEN', 'FULFILLED', 'COMPLETED', 'REDEEMED', 'PAID'].includes(value)) return 'success'
+  if (['ACTIVE', 'OPEN', 'FULFILLED', 'COMPLETED', 'REDEEMED', 'PAID', 'SUCCESS'].includes(value)) return 'success'
   if (['WAITING', 'CALLED', 'BOOKED', 'AVAILABLE'].includes(value)) return 'primary'
   if (['NO_SHOW', 'MISSED', 'EXPIRED'].includes(value)) return 'warning'
-  if (['FROZEN'].includes(value)) return 'danger'
+  if (['FROZEN', 'FAILED'].includes(value)) return 'danger'
   return 'info'
+}
+
+export function isBalanceIncrease(transaction) {
+  return Number(transaction?.balanceAfter || 0) >= Number(transaction?.balanceBefore || 0)
+}
+
+export function formatBalanceChange(transaction) {
+  return `${isBalanceIncrease(transaction) ? '+' : '-'}${formatMoney(Math.abs(Number(transaction?.amount || 0)))}`
 }

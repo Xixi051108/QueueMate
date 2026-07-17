@@ -1,6 +1,6 @@
 # QueueMate Design System
 
-> Version 1.0 · 2026-07-17  
+> Version 1.1 · 2026-07-17
 > Scope: QueueMate Vue 3 web application  
 > Source of truth: global visual tokens, interaction rules, responsive behavior, and component states
 
@@ -30,16 +30,16 @@ Avoid:
 
 ## 2. Existing-page audit
 
-At the time this system was created, `frontend/queuemate-web` contained only `src/.gitkeep` and `public/.gitkeep`. There were no manifests, routes, components, styles, or rendered pages.
+The initial audit found an empty frontend. The current implementation now covers public browsing, customer self-service, venue operations, and administrator tools while preserving the same service-counter visual language.
 
-| Area | Current finding | Rule for initial implementation |
+| Area | Current implementation | Ongoing rule |
 | --- | --- | --- |
-| Color | No palette exists | Use semantic tokens below; no raw color values inside page components |
-| Typography | No font system exists | Use the Chinese-first system stack and fixed scale below |
-| Spacing | No scale exists | Use the 4px-based spacing scale consistently |
-| Layout | No application shell exists | Use a 1200px content rail and a compact service header |
-| Components | No shared components exist | Wrap repeated status, empty, loading, and venue patterns |
-| Responsive | No breakpoints exist | Validate at 375, 768, 1024, and 1440px |
+| Color | Service-blue semantic palette is implemented | Use semantic tokens below; no raw color values inside page components |
+| Typography | Chinese-first system stack and data face are implemented | Keep codes, currency, times, and queue numbers tabular |
+| Spacing | 4px-based scale is applied across all roles | Reuse the established 8/12/16/24/32 rhythm |
+| Layout | Shared service header and 1200px rail are implemented | Keep role navigation predictable and scroll-safe |
+| Components | Shared loading, empty, status, venue, ticket, and form patterns exist | Extend existing patterns before adding new visual language |
+| Responsive | Public, user, merchant, and admin pages are responsive | Validate 375, landscape, tablet, desktop, and reduced motion |
 
 This is a greenfield implementation, not a redesign. Backend business rules and endpoint contracts remain unchanged.
 
@@ -219,8 +219,8 @@ No page may require horizontal scrolling at 375px. Wide data tables must become 
 - Do not disable browser zoom.
 - Verify loading, empty, error, success, disabled, hover, focus, and mobile states.
 - Visual QA widths: 375, 768, 1024, and 1440px.
-- Before delivery, run the production build and inspect at least login, venue list, venue detail, bookings, wallet, and queue pages.
+- Before delivery, run the production build and inspect public authentication, user records, merchant operations, and administrator tools.
 
 ## 11. Implementation mapping
 
-Element Plus remains the component base, but its theme variables must map to the QueueMate tokens. Vue components should consume semantic CSS variables rather than hardcoded hex values. Axios provides a single response/error interceptor. Authentication state and route guards are shared. Page-specific exceptions belong in `design-system/pages/<page-name>.md`; if no override exists, this file is authoritative.
+Element Plus remains the component base, but its theme variables must map to the QueueMate tokens. Vue components should consume semantic CSS variables rather than hardcoded hex values. Axios provides a single response/error interceptor. Authentication state, role-aware home routing, and route guards are shared. The venue operations page groups slots, queue transitions, voucher redemption, and busy-hours data because they form one real operational workflow. Page-specific exceptions belong in `design-system/pages/<page-name>.md`; if no override exists, this file is authoritative.

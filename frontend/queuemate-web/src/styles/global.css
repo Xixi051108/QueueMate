@@ -17,6 +17,23 @@ body {
   background: var(--qm-canvas);
 }
 
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 100;
+  padding: 10px 14px;
+  transform: translateY(-160%);
+  border-radius: var(--qm-radius-sm);
+  background: var(--qm-primary-700);
+  color: white;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+  color: white;
+}
+
 button,
 a,
 [role="button"] {
@@ -82,6 +99,42 @@ a:hover {
   line-height: 1.4;
 }
 
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-help {
+  margin: 6px 0 0;
+  color: var(--qm-ink-500);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.metric-card {
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+}
+
+.metric-card span {
+  color: var(--qm-ink-500);
+  font-size: 13px;
+}
+
+.metric-card strong {
+  color: var(--qm-primary-700);
+  font-size: 28px;
+}
+
 .filters {
   display: flex;
   flex-wrap: wrap;
@@ -141,6 +194,10 @@ a:hover {
 
   .el-button {
     min-height: 44px;
+  }
+
+  .metric-grid {
+    grid-template-columns: 1fr;
   }
 }
 

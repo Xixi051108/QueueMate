@@ -5,12 +5,13 @@ import { Lock, User } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { authApi } from '../services/api'
 import { authState } from '../state/auth'
+import { homeForRole } from '../router'
 
 const route = useRoute()
 const router = useRouter()
 const formRef = ref()
 const loading = ref(false)
-const form = reactive({ username: '', password: '' })
+const form = reactive({ username: typeof route.query.username === 'string' ? route.query.username : '', password: '' })
 const rules = {
   username: [
     { required: true, message: '请输入用户名', trigger: 'blur' },
@@ -30,7 +31,7 @@ async function submit() {
     const session = await authApi.login({ username: form.username.trim(), password: form.password })
     authState.setSession(session)
     ElMessage.success('登录成功')
-    router.replace(typeof route.query.redirect === 'string' ? route.query.redirect : '/venues')
+    router.replace(typeof route.query.redirect === 'string' ? route.query.redirect : homeForRole(session.user.role))
   } catch (error) {
     ElMessage.error(error.message)
   } finally {
@@ -67,10 +68,12 @@ async function submit() {
           {{ loading ? '正在登录' : '登录并继续' }}
         </el-button>
       </el-form>
+      <p class="register-link">还没有账号？<RouterLink :to="{ name: 'register', query: { redirect: route.query.redirect } }">注册普通用户</RouterLink></p>
       <aside class="demo-note">
         <strong>本地演示账号</strong>
         <span>普通用户：alice / User123456</span>
         <span>商家：merchant_tea / Merchant123456</span>
+        <span>管理员：admin / Admin123456</span>
       </aside>
     </section>
   </div>
@@ -88,6 +91,8 @@ async function submit() {
 .login-card h2 { margin: 8px 0 6px; font-size: 24px; }
 .login-card p { margin: 0; color: var(--qm-ink-500); line-height: 1.6; }
 .submit-button { width: 100%; min-height: 46px; margin-top: 4px; }
+.register-link { margin: -10px 0 0 !important; text-align: center; }
+.register-link a { font-weight: 700; }
 .demo-note { display: grid; gap: 5px; border-top: 1px dashed var(--qm-line-300); padding-top: 18px; color: var(--qm-ink-500); font-size: 12px; line-height: 1.6; }
 .demo-note strong { color: var(--qm-ink-700); }
 @media (max-width: 840px) { .login-layout { grid-template-columns: 1fr; align-content: start; gap: 32px; } .login-intro h1 { font-size: 38px; } }

@@ -1,8 +1,10 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowRight, Calendar, Location, SwitchButton, Tickets, Wallet } from '@element-plus/icons-vue'
+import { ArrowRight, Calendar, Coin, Location, OfficeBuilding, SwitchButton, Tickets, Wallet } from '@element-plus/icons-vue'
 import { authState } from '../state/auth'
+import { homeForRole } from '../router'
+import { labelOf } from '../utils/format'
 
 const route = useRoute()
 const router = useRouter()
@@ -13,10 +15,25 @@ const userLinks = [
   { to: '/queue', label: '排队', icon: Tickets },
 ]
 
+const merchantLinks = [
+  { to: '/manage/venues', label: '场所工作台', icon: OfficeBuilding },
+]
+
+const adminLinks = [
+  { to: '/manage/venues', label: '场所管理', icon: OfficeBuilding },
+  { to: '/admin/wallets', label: '钱包管理', icon: Coin },
+  { to: '/admin/bookings', label: '预约处理', icon: Calendar },
+]
+
 const links = computed(() => {
   const base = [{ to: '/venues', label: '发现地点', icon: Location }]
-  return authState.role.value === 'USER' ? [...base, ...userLinks] : base
+  if (authState.role.value === 'USER') return [...base, ...userLinks]
+  if (authState.role.value === 'MERCHANT') return [...base, ...merchantLinks]
+  if (authState.role.value === 'ADMIN') return [...base, ...adminLinks]
+  return base
 })
+
+const brandTarget = computed(() => homeForRole(authState.role.value))
 
 function logout() {
   authState.clearSession()
@@ -26,9 +43,10 @@ function logout() {
 
 <template>
   <div class="app-shell">
+    <a class="skip-link" href="#main-content">跳到主要内容</a>
     <header class="service-header">
       <div class="header-inner">
-        <RouterLink class="brand" to="/venues" aria-label="QueueMate 首页">
+        <RouterLink class="brand" :to="brandTarget" aria-label="QueueMate 首页">
           <span class="brand-mark" aria-hidden="true">Q</span>
           <span>
             <strong>QueueMate</strong>
@@ -50,7 +68,10 @@ function logout() {
 
         <div class="account-area">
           <template v-if="authState.isAuthenticated.value">
-            <span class="account-name">{{ authState.user.value?.displayName }}</span>
+            <span class="account-name">
+              <small>{{ labelOf(authState.role.value) }}</small>
+              {{ authState.user.value?.displayName }}
+            </span>
             <el-button text :icon="SwitchButton" aria-label="退出登录" @click="logout">退出</el-button>
           </template>
           <RouterLink v-else class="login-link" :to="{ name: 'login', query: { redirect: route.fullPath } }">
@@ -81,7 +102,8 @@ function logout() {
 .primary-nav a:hover { background: var(--qm-primary-050); color: var(--qm-primary-700); }
 .primary-nav a.active { border-bottom-color: var(--qm-primary-600); color: var(--qm-primary-700); }
 .account-area { display: flex; align-items: center; gap: 8px; }
-.account-name { max-width: 120px; overflow: hidden; color: var(--qm-ink-700); font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+.account-name { display: grid; max-width: 140px; overflow: hidden; color: var(--qm-ink-700); font-size: 14px; line-height: 1.2; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+.account-name small { color: var(--qm-ink-500); font-size: 10px; }
 .login-link { display: inline-flex; min-height: 44px; align-items: center; gap: 4px; font-weight: 600; }
 .main-content { width: min(1200px, calc(100% - 48px)); margin: 0 auto; padding: 40px 0 64px; }
 @media (max-width: 900px) {

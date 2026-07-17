@@ -11,10 +11,9 @@ const venues = ref([])
 const filters = reactive({ keyword: '', category: '', status: 'ACTIVE' })
 
 const categories = [
-  { value: 'MILK_TEA', label: '奶茶店' },
+  { value: 'TEA_SHOP', label: '奶茶店' },
   { value: 'STUDY_ROOM', label: '自习室' },
-  { value: 'BADMINTON', label: '羽毛球场' },
-  { value: 'OTHER', label: '其他场所' },
+  { value: 'BADMINTON_COURT', label: '羽毛球场' },
 ]
 
 async function loadVenues() {

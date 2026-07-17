@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 import {
   ElButton,
+  ElDatePicker,
   ElDialog,
   ElForm,
   ElFormItem,
@@ -10,7 +11,9 @@ import {
   ElOption,
   ElSelect,
   ElSkeleton,
+  ElSwitch,
   ElTag,
+  ElTimePicker,
 } from 'element-plus'
 import 'element-plus/dist/index.css'
 import App from './App.vue'
@@ -22,6 +25,7 @@ const app = createApp(App)
 
 ;[
   ElButton,
+  ElDatePicker,
   ElDialog,
   ElForm,
   ElFormItem,
@@ -31,7 +35,9 @@ const app = createApp(App)
   ElOption,
   ElSelect,
   ElSkeleton,
+  ElSwitch,
   ElTag,
+  ElTimePicker,
 ].forEach((component) => app.component(component.name, component))
 
 app.use(router).mount('#app')

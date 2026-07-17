@@ -47,6 +47,15 @@ async function cancelBooking(booking) {
   }
 }
 
+async function copyCode(code) {
+  try {
+    await navigator.clipboard.writeText(code)
+    ElMessage.success('消费码已复制')
+  } catch {
+    ElMessage.warning('浏览器未允许复制，请手动选择消费码')
+  }
+}
+
 onMounted(load)
 </script>
 
@@ -63,7 +72,8 @@ onMounted(load)
       <article v-for="booking in bookings" :key="booking.id" class="booking-ticket surface">
         <div class="ticket-main"><div><span class="ticket-label">{{ venueNames[booking.venueId] || `地点 ${booking.venueId}` }}</span><h2 class="data-value">{{ booking.bookingNo }}</h2></div><el-tag :type="statusType(booking.status)" round>{{ labelOf(booking.status) }}</el-tag></div>
         <dl><div><dt>提交时间</dt><dd>{{ formatDateTime(booking.bookedAt) }}</dd></div><div><dt>支付状态</dt><dd>{{ labelOf(booking.payStatus) }}</dd></div><div><dt>实付金额</dt><dd class="data-value">{{ formatMoney(booking.paidAmount) }}</dd></div></dl>
-        <div v-if="booking.voucher" class="voucher"><div><span>消费码</span><strong class="data-value">{{ booking.voucher.consumptionCode }}</strong></div><el-tag :type="statusType(booking.voucher.status)" effect="plain" round>{{ labelOf(booking.voucher.status) }}</el-tag></div>
+        <div v-if="booking.voucher" class="voucher"><div><span>消费码 · 有效期至 {{ formatDateTime(booking.voucher.validUntil) }}</span><strong class="data-value">{{ booking.voucher.consumptionCode }}</strong></div><div class="voucher-actions"><el-tag :type="statusType(booking.voucher.status)" effect="plain" round>{{ labelOf(booking.voucher.status) }}</el-tag><el-button v-if="booking.voucher.status === 'AVAILABLE'" text @click="copyCode(booking.voucher.consumptionCode)">复制消费码</el-button></div></div>
+        <p v-if="booking.status === 'CANCELLED' && booking.cancelReason" class="cancel-reason">取消原因：{{ booking.cancelReason }}</p>
         <div v-if="booking.status === 'BOOKED'" class="ticket-actions"><el-button type="danger" plain :loading="actionId === booking.id" @click="cancelBooking(booking)">取消预约</el-button></div>
       </article>
     </section>
@@ -72,15 +82,18 @@ onMounted(load)
 
 <style scoped>
 .booking-list { display: grid; gap: 16px; }
-.booking-ticket { padding: 22px; }
+.booking-ticket { min-width: 0; padding: 22px; }
 .ticket-main { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.ticket-main > div { min-width: 0; }
 .ticket-label { color: var(--qm-primary-700); font-size: 13px; font-weight: 700; }
-.ticket-main h2 { margin: 7px 0 0; font-size: 19px; }
+.ticket-main h2 { margin: 7px 0 0; overflow-wrap: anywhere; font-size: 19px; }
 dl { display: grid; grid-template-columns: repeat(3, 1fr); margin: 20px 0 0; padding: 16px 0; border-top: 1px dashed var(--qm-line-300); border-bottom: 1px dashed var(--qm-line-300); }
 dl div { padding: 0 16px; border-right: 1px solid var(--qm-line-200); } dl div:first-child { padding-left: 0; } dl div:last-child { border: 0; }
 dt { color: var(--qm-ink-500); font-size: 12px; } dd { margin: 5px 0 0; font-size: 14px; font-weight: 600; }
 .voucher { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 16px; padding: 14px 16px; background: var(--qm-primary-050); }
-.voucher div { display: grid; gap: 4px; } .voucher span { color: var(--qm-ink-500); font-size: 12px; } .voucher strong { font-size: 18px; letter-spacing: .05em; }
+.voucher div { min-width: 0; display: grid; gap: 4px; } .voucher span { color: var(--qm-ink-500); font-size: 12px; } .voucher strong { overflow-wrap: anywhere; font-size: 18px; letter-spacing: .05em; }
+.voucher-actions { display: flex !important; grid-auto-flow: column; align-items: center; gap: 8px !important; }
+.cancel-reason { margin: 14px 0 0; color: var(--qm-ink-500); font-size: 13px; }
 .ticket-actions { display: flex; justify-content: flex-end; margin-top: 16px; }
 @media (max-width: 600px) { dl { grid-template-columns: 1fr; gap: 12px; } dl div, dl div:first-child { padding: 0; border: 0; } .voucher { align-items: flex-start; flex-direction: column; } .ticket-actions .el-button { width: 100%; } }
 </style>

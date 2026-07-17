@@ -3,7 +3,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import StatePanel from '../components/StatePanel.vue'
 import { walletApi } from '../services/api'
-import { formatDateTime, formatMoney, labelOf } from '../utils/format'
+import { formatBalanceChange, formatDateTime, formatMoney, isBalanceIncrease, labelOf } from '../utils/format'
 
 const loading = ref(true)
 const error = ref('')
@@ -58,7 +58,7 @@ onMounted(load)
       <section class="wallet-card surface"><div><span>可用余额</span><strong class="data-value">{{ formatMoney(wallet?.balance) }}</strong><small>钱包状态：{{ wallet?.status === 'ACTIVE' ? '正常' : labelOf(wallet?.status) }}</small></div><el-button type="primary" @click="dialogOpen = true">模拟充值</el-button></section>
       <section class="surface transactions"><div class="transactions__header"><div><h2 class="section-title">余额记录</h2><p>充值、支付、退款与调整均保留变动前后余额。</p></div><el-select v-model="type" clearable placeholder="全部类型" aria-label="流水类型" @change="load"><el-option v-for="item in ['RECHARGE','PAYMENT','REFUND','ADJUSTMENT']" :key="item" :label="labelOf(item)" :value="item" /></el-select></div>
         <StatePanel v-if="!transactions.length" title="暂无余额记录" description="充值或完成收费预约后，记录会出现在这里。" />
-        <div v-else class="transaction-list"><article v-for="item in transactions" :key="item.id"><div><strong>{{ labelOf(item.type) }}</strong><span>{{ formatDateTime(item.createdAt) }} · {{ item.remark || '无备注' }}</span></div><div class="transaction-amount"><strong class="data-value" :class="{ positive: Number(item.amount) > 0 }">{{ Number(item.amount) > 0 ? '+' : '' }}{{ formatMoney(item.amount) }}</strong><span class="data-value">余额 {{ formatMoney(item.balanceAfter) }}</span></div></article></div>
+        <div v-else class="transaction-list"><article v-for="item in transactions" :key="item.id"><div><strong>{{ labelOf(item.type) }}</strong><span>{{ formatDateTime(item.createdAt) }} · {{ item.remark || '无备注' }}</span></div><div class="transaction-amount"><strong class="data-value" :class="{ positive: isBalanceIncrease(item) }">{{ formatBalanceChange(item) }}</strong><span class="data-value">余额 {{ formatMoney(item.balanceAfter) }}</span></div></article></div>
       </section>
     </template>
     <el-dialog v-model="dialogOpen" title="模拟充值" width="min(440px, calc(100vw - 32px))">

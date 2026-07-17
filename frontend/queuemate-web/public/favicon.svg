@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="QueueMate">
+  <rect width="64" height="64" rx="10" fill="#176b9c"/>
+  <path d="M20 14h24v24c0 8-5 14-12 14s-12-6-12-14V14Zm7 8v16c0 4 2 7 5 7s5-3 5-7V22H27Z" fill="#fff"/>
+  <path d="m37 42 9 9" fill="none" stroke="#dceef7" stroke-width="5" stroke-linecap="square"/>
+</svg>
