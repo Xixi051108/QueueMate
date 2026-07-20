@@ -1,7 +1,8 @@
 use queuemate;
+set names utf8mb4;
 
--- 为已有本地数据库补充演示地点。INSERT IGNORE 使脚本可重复执行，
--- 并避免覆盖开发者已经在后台修改过的同 ID 或同名地点。
+-- 为已有本地数据库补充演示地点。脚本可重复执行；重复地点只刷新
+-- 名称、介绍和地址，以修复客户端字符集错误，同时保留运营状态和价格等修改。
 insert ignore into venues (
   id, name, category, description, merchant_id, address_text,
   queue_enabled, booking_enabled, default_price, status
@@ -14,7 +15,11 @@ insert ignore into venues (
 (4009, '深夜书桌·科创园店', 'STUDY_ROOM', '提供晚间学习时段、饮水区和储物柜，适合下班后的集中学习。', 2001, '科创园星火路 21 号创客公寓裙楼 2 层', 0, 1, 16.00, 'ACTIVE'),
 (4010, '飞羽羽毛球馆·奥体店', 'BADMINTON_COURT', '专业塑胶场地与分区照明，提供晚间热门时段预约及现场候场取号。', 2002, '奥体新区竞速路 10 号全民运动中心 1 层', 1, 1, 40.00, 'ACTIVE'),
 (4011, '跃动羽毛球馆·湖滨店', 'BADMINTON_COURT', '四片标准场地，配有休息区和淋浴间，适合朋友约球和社群活动。', 2002, '湖滨新区逐风路 35 号运动汇 2 层', 0, 1, 32.00, 'ACTIVE'),
-(4012, '邻里羽毛球馆·社区店', 'BADMINTON_COURT', '社区型小场馆，价格亲民，提供工作日晨练和下午错峰时段。', 2002, '悦邻社区和悦路 6 号文体中心', 1, 1, 22.00, 'ACTIVE');
+(4012, '邻里羽毛球馆·社区店', 'BADMINTON_COURT', '社区型小场馆，价格亲民，提供工作日晨练和下午错峰时段。', 2002, '悦邻社区和悦路 6 号文体中心', 1, 1, 22.00, 'ACTIVE')
+on duplicate key update
+  name = values(name),
+  description = values(description),
+  address_text = values(address_text);
 
 insert ignore into booking_slots (
   id, venue_id, slot_date, start_time, end_time, capacity,

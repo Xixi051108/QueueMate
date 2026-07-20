@@ -1,4 +1,5 @@
 use queuemate;
+set names utf8mb4;
 
 insert into users (id, username, password_hash, role, display_name, phone, status) values
 (1001, 'admin', '{bcrypt}$2a$10$NbUYcsZe4AgAJMgGY2.BfOYU38nRNmsiWEmWptKSrvECCIhXh89ZW', 'ADMIN', '平台管理员', '13800000000', 'ACTIVE'),
