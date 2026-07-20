@@ -1,10 +1,14 @@
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ArrowLeft } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import StatePanel from '../components/StatePanel.vue'
 import { walletApi } from '../services/api'
 import { formatBalanceChange, formatDateTime, formatMoney, isBalanceIncrease, labelOf } from '../utils/format'
 
+const route = useRoute()
+const router = useRouter()
 const loading = ref(true)
 const error = ref('')
 const wallet = ref(null)
@@ -13,6 +17,11 @@ const type = ref('')
 const dialogOpen = ref(false)
 const recharging = ref(false)
 const recharge = reactive({ amount: 50, remark: '' })
+const returnPath = computed(() => {
+  const value = route.query.returnTo
+  return typeof value === 'string' && value.startsWith('/venues/') && !value.startsWith('//') ? value : ''
+})
+const isBookingRecharge = computed(() => route.query.recharge === '1' && Boolean(returnPath.value))
 
 async function load() {
   loading.value = true
@@ -36,8 +45,13 @@ async function submitRecharge() {
   recharging.value = true
   try {
     await walletApi.recharge(Number(recharge.amount), recharge.remark.trim())
-    ElMessage.success('充值成功')
     dialogOpen.value = false
+    if (returnPath.value) {
+      ElMessage.success('充值成功，正在返回预约页面')
+      router.push(returnPath.value)
+      return
+    }
+    ElMessage.success('充值成功')
     await load()
   } catch (err) {
     ElMessage.error(err.message)
@@ -46,12 +60,25 @@ async function submitRecharge() {
   }
 }
 
-onMounted(load)
+async function initialize() {
+  const suggestedAmount = Number(route.query.amount)
+  if (Number.isFinite(suggestedAmount) && suggestedAmount >= 0.01 && suggestedAmount <= 100000) {
+    recharge.amount = suggestedAmount
+  }
+  await load()
+  if (isBookingRecharge.value) dialogOpen.value = true
+}
+
+onMounted(initialize)
 </script>
 
 <template>
   <div class="page">
     <header class="page-heading"><div><h1>我的钱包</h1><p>站内模拟余额用于支付收费预约时段。</p></div></header>
+    <section v-if="returnPath" class="recharge-context surface" role="status" aria-live="polite">
+      <div><strong>正在为预约补充余额</strong><span>充值成功后会自动返回原地点，你可以重新确认预约。</span></div>
+      <el-button :icon="ArrowLeft" @click="router.push(returnPath)">返回预约页面</el-button>
+    </section>
     <el-skeleton v-if="loading" :rows="8" animated />
     <StatePanel v-else-if="error" title="钱包加载失败" :description="error" error @retry="load" />
     <template v-else>
@@ -62,13 +89,18 @@ onMounted(load)
       </section>
     </template>
     <el-dialog v-model="dialogOpen" title="模拟充值" width="min(440px, calc(100vw - 32px))">
-      <el-form label-position="top" @submit.prevent="submitRecharge"><el-form-item label="充值金额（元）" required><el-input-number v-model="recharge.amount" :min="0.01" :max="100000" :precision="2" :step="10" controls-position="right" /></el-form-item><el-form-item label="备注（可选）"><el-input v-model="recharge.remark" maxlength="255" show-word-limit placeholder="例如：本地演示充值" /></el-form-item></el-form>
+      <el-form label-position="top" @submit.prevent="submitRecharge"><p v-if="returnPath" class="recharge-help">已根据预约金额填写建议充值金额，你可以继续调整。充值成功后将自动返回预约页面。</p><el-form-item label="充值金额（元）" required><el-input-number v-model="recharge.amount" :min="0.01" :max="100000" :precision="2" :step="10" controls-position="right" /></el-form-item><el-form-item label="备注（可选）"><el-input v-model="recharge.remark" maxlength="255" show-word-limit placeholder="例如：本地演示充值" /></el-form-item></el-form>
       <template #footer><el-button @click="dialogOpen = false">取消</el-button><el-button type="primary" :loading="recharging" @click="submitRecharge">确认充值</el-button></template>
     </el-dialog>
   </div>
 </template>
 
 <style scoped>
+.recharge-context { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 20px; border-left: 4px solid var(--qm-warning-700); background: var(--qm-warning-100); }
+.recharge-context > div { display: grid; gap: 4px; }
+.recharge-context strong { color: var(--qm-ink-900); }
+.recharge-context span, .recharge-help { color: var(--qm-ink-700); font-size: 13px; line-height: 1.6; }
+.recharge-help { margin: 0 0 18px; }
 .wallet-card { display: flex; min-height: 190px; align-items: flex-end; justify-content: space-between; gap: 24px; padding: 28px; border-left: 4px solid var(--qm-primary-600); }
 .wallet-card > div { display: grid; gap: 8px; } .wallet-card span, .wallet-card small { color: var(--qm-ink-500); } .wallet-card strong { font-size: clamp(34px, 7vw, 48px); color: var(--qm-ink-900); }
 .transactions { padding: 24px; }
@@ -77,5 +109,5 @@ onMounted(load)
 .transaction-list article { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 17px 0; border-top: 1px solid var(--qm-line-200); }
 .transaction-list article > div { display: grid; gap: 4px; } .transaction-list span { color: var(--qm-ink-500); font-size: 12px; }
 .transaction-amount { text-align: right; } .transaction-amount strong { color: var(--qm-danger-700); } .transaction-amount strong.positive { color: var(--qm-success-700); }
-@media (max-width: 600px) { .wallet-card, .transactions__header { align-items: stretch; flex-direction: column; } .wallet-card .el-button { width: 100%; } .transaction-list article { align-items: flex-start; } }
+@media (max-width: 600px) { .recharge-context, .wallet-card, .transactions__header { align-items: stretch; flex-direction: column; } .recharge-context .el-button, .wallet-card .el-button { width: 100%; } .transaction-list article { align-items: flex-start; } }
 </style>

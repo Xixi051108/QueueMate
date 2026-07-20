@@ -67,7 +67,21 @@ async function book(slot) {
     ElMessage.success('预约成功')
     await load()
   } catch (err) {
-    ElMessage.error(err.message)
+    if (err.code === 'WALLET_BALANCE_NOT_ENOUGH') {
+      const goRecharge = await ElMessageBox.confirm(
+        `当前钱包余额不足，无法支付 ${formatMoney(price)}。充值成功后会自动返回当前预约页面。`,
+        '余额不足',
+        { confirmButtonText: '前往充值', cancelButtonText: '暂不充值', type: 'warning' },
+      ).then(() => true).catch(() => false)
+      if (goRecharge) {
+        await router.push({
+          name: 'wallet',
+          query: { recharge: '1', returnTo: route.fullPath, amount: String(price) },
+        })
+      }
+    } else {
+      ElMessage.error(err.message)
+    }
   } finally {
     actionId.value = ''
   }
