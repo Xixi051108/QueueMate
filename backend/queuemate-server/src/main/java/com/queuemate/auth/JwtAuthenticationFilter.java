@@ -4,13 +4,13 @@ import com.queuemate.config.RestAuthenticationEntryPoint;
 import com.queuemate.user.User;
 import com.queuemate.user.UserMapper;
 import com.queuemate.user.UserStatus;
+import com.queuemate.user.UserRoleService;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.List;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -27,15 +27,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenService jwtTokenService;
     private final UserMapper userMapper;
     private final RestAuthenticationEntryPoint authenticationEntryPoint;
+    private final UserRoleService userRoleService;
 
     public JwtAuthenticationFilter(
             JwtTokenService jwtTokenService,
             UserMapper userMapper,
-            RestAuthenticationEntryPoint authenticationEntryPoint
+            RestAuthenticationEntryPoint authenticationEntryPoint,
+            UserRoleService userRoleService
     ) {
         this.jwtTokenService = jwtTokenService;
         this.userMapper = userMapper;
         this.authenticationEntryPoint = authenticationEntryPoint;
+        this.userRoleService = userRoleService;
     }
 
     @Override
@@ -57,11 +60,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 throw new BadCredentialsException("User is unavailable");
             }
 
-            AuthenticatedUser principal = new AuthenticatedUser(user.getId(), user.getUsername(), user.getRole());
+            var roles = userRoleService.rolesFor(user);
+            AuthenticatedUser principal = new AuthenticatedUser(user.getId(), user.getUsername(), user.getRole(), roles);
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                     principal,
                     null,
-                    List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
+                    roles.stream()
+                            .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
+                            .toList()
             );
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authentication);

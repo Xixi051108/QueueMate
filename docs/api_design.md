@@ -117,6 +117,29 @@
 
 token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UNAUTHORIZED`。
 
+### 2.4 多身份响应
+
+登录与 `/auth/me` 响应同时返回默认身份 `role` 和全部授权身份 `roles`。例如已通过入驻审核的账号：
+
+```json
+{
+  "role": "MERCHANT",
+  "roles": ["USER", "MERCHANT"]
+}
+```
+
+## 2A. 商家入驻接口
+
+- `POST /merchant-applications`：普通用户提交入驻申请；已有待审核申请返回 `409 / MERCHANT_APPLICATION_PENDING`
+- `GET /merchant-applications/my`：查看本人全部申请和审核原因
+- `GET /admin/merchant-applications?status=PENDING`：管理员查看申请列表
+- `GET /admin/merchant-applications/{id}`：管理员查看申请详情
+- `PATCH /admin/merchant-applications/{id}/approve`：通过申请并授予商家身份
+- `PATCH /admin/merchant-applications/{id}/reject`：驳回申请；`reviewNote` 必填
+- `GET /admin/merchants`：返回可用于归属门店的已启用商家列表
+
+申请状态为 `PENDING / APPROVED / REJECTED`。同一申请只能审核一次，重复审核返回 `409 / MERCHANT_APPLICATION_REVIEWED`。申请中的拟入驻资料不自动创建或公开门店。
+
 ## 3. 地点接口
 
 ### 3.1 `GET /venues`

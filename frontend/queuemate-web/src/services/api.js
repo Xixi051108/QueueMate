@@ -54,3 +54,13 @@ export const adminApi = {
   walletTransactions: (params) => http.get('/admin/wallet-transactions', { params }),
   adjustWallet: (userId, payload) => http.post(`/admin/wallets/${userId}/adjust`, payload),
 }
+
+export const merchantApplicationApi = {
+  submit: (payload) => http.post('/merchant-applications', payload),
+  mine: () => http.get('/merchant-applications/my'),
+  list: (params) => http.get('/admin/merchant-applications', { params }),
+  get: (id) => http.get(`/admin/merchant-applications/${id}`),
+  approve: (id, reviewNote = '') => http.patch(`/admin/merchant-applications/${id}/approve`, { reviewNote }),
+  reject: (id, reviewNote) => http.patch(`/admin/merchant-applications/${id}/reject`, { reviewNote }),
+  merchants: () => http.get('/admin/merchants'),
+}

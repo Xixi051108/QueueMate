@@ -10,6 +10,8 @@
 ## 2. 核心实体关系
 
 - 一个商家可以管理多个地点
+- 一个账号可以拥有多个角色；`users.role` 保存默认进入身份，`user_roles` 保存全部已授权身份
+- 一个普通用户可以提交多次商家入驻申请，但同一时间最多有一条待审核申请
 - 一个地点只归属一个商家
 - 一个地点可以配置多个预约时段
 - 一个用户可以产生多个预约记录
@@ -38,6 +40,38 @@
 
 - 唯一索引：`uk_users_username (username)`
 - 普通索引：`idx_users_role (role)`
+
+### 3.1A `user_roles`
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| user_id | bigint | 用户 ID |
+| role | varchar(20) | 已授权角色 |
+| granted_by | bigint | 授权人；用户注册时为本人，审核开通时为管理员 |
+| granted_at | datetime | 授权时间 |
+
+主键为 `(user_id, role)`，防止重复授权。同一账号可同时拥有 `USER` 和 `MERCHANT`，因此成为商家后仍可预约、排队和使用钱包。
+
+### 3.1B `merchant_applications`
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| id | bigint | 主键 |
+| applicant_id | bigint | 申请账号 |
+| business_name | varchar(100) | 商家或品牌名称 |
+| contact_name | varchar(100) | 联系人 |
+| contact_phone | varchar(20) | 审核联系电话 |
+| venue_name | varchar(100) | 拟入驻门店名称 |
+| venue_category | varchar(30) | 拟入驻类别 |
+| address_text | varchar(255) | 拟入驻地址 |
+| description | varchar(500) | 经营与服务介绍 |
+| status | varchar(20) | `PENDING` / `APPROVED` / `REJECTED` |
+| review_note | varchar(500) | 审核说明或驳回原因 |
+| reviewer_id | bigint | 审核管理员 |
+| submitted_at | datetime | 提交时间 |
+| reviewed_at | datetime | 审核时间 |
+
+`pending_applicant_id` 是仅在 `PENDING` 状态有值的生成列，唯一索引保证同一申请人最多存在一条待审核申请。批准操作在同一事务内写入审核记录、授予 `MERCHANT` 身份并更新默认身份。
 
 ### 3.2 `venues`
 
@@ -325,6 +359,12 @@
 - `CALLED`
 - `COMPLETED`
 - `MISSED`
+
+### 4.13 商家入驻申请状态
+
+- `PENDING`
+- `APPROVED`
+- `REJECTED`
 
 ## 5. 并发控制设计
 

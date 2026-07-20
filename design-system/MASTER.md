@@ -197,7 +197,8 @@ No page may require horizontal scrolling at 375px. Wide data tables must become 
 
 - Public routes: venue list, venue detail, slot availability, public queue progress.
 - Authenticated USER routes: my bookings, wallet, my queue tickets.
-- MERCHANT and ADMIN navigation must not expose USER-only payment or booking actions.
+- Navigation follows the active workspace role. A multi-role account may switch between USER and MERCHANT workspaces without losing either permission set.
+- USER navigation places merchant onboarding before personal records on narrow screens so the entry remains discoverable.
 - Desktop uses a compact top service bar. Mobile uses a wrapping/scroll-safe navigation row initially; a bottom bar may be introduced only when there are five or fewer stable primary destinations.
 - Route protection lives in Vue Router navigation guards, not repeated inside every page.
 

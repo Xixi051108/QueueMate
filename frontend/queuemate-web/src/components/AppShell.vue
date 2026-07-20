@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowRight, Calendar, Coin, Location, OfficeBuilding, SwitchButton, Tickets, Wallet } from '@element-plus/icons-vue'
+import { ArrowDown, ArrowRight, Calendar, Coin, Location, OfficeBuilding, Promotion, SwitchButton, Tickets, Wallet } from '@element-plus/icons-vue'
 import { authState } from '../state/auth'
 import { homeForRole } from '../router'
 import { labelOf } from '../utils/format'
@@ -10,6 +10,7 @@ const route = useRoute()
 const router = useRouter()
 
 const userLinks = [
+  { to: '/merchant/application', label: '商家入驻', icon: Promotion },
   { to: '/bookings', label: '我的预约', icon: Calendar },
   { to: '/wallet', label: '钱包', icon: Wallet },
   { to: '/queue', label: '排队', icon: Tickets },
@@ -21,6 +22,7 @@ const merchantLinks = [
 
 const adminLinks = [
   { to: '/manage/venues', label: '场所管理', icon: OfficeBuilding },
+  { to: '/admin/merchant-applications', label: '入驻审核', icon: Promotion },
   { to: '/admin/wallets', label: '钱包管理', icon: Coin },
   { to: '/admin/bookings', label: '预约处理', icon: Calendar },
 ]
@@ -34,6 +36,10 @@ const links = computed(() => {
 })
 
 const brandTarget = computed(() => homeForRole(authState.role.value))
+
+function switchRole(nextRole) {
+  if (authState.switchRole(nextRole)) router.push(homeForRole(nextRole))
+}
 
 function logout() {
   authState.clearSession()
@@ -68,6 +74,24 @@ function logout() {
 
         <div class="account-area">
           <template v-if="authState.isAuthenticated.value">
+            <el-dropdown v-if="authState.availableRoles.value.length > 1" trigger="click" @command="switchRole">
+              <button class="role-switch" type="button" aria-label="切换当前身份">
+                {{ labelOf(authState.role.value) }}
+                <el-icon aria-hidden="true"><ArrowDown /></el-icon>
+              </button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item
+                    v-for="item in authState.availableRoles.value"
+                    :key="item"
+                    :command="item"
+                    :disabled="item === authState.role.value"
+                  >
+                    进入{{ labelOf(item) }}端
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
             <span class="account-name">
               <small>{{ labelOf(authState.role.value) }}</small>
               {{ authState.user.value?.displayName }}
@@ -102,11 +126,13 @@ function logout() {
 .primary-nav a:hover { background: var(--qm-primary-050); color: var(--qm-primary-700); }
 .primary-nav a.active { border-bottom-color: var(--qm-primary-600); color: var(--qm-primary-700); }
 .account-area { display: flex; align-items: center; gap: 8px; }
+.role-switch { display: inline-flex; min-height: 36px; align-items: center; gap: 4px; padding: 0 10px; border: 1px solid var(--qm-primary-600); border-radius: 6px; background: var(--qm-primary-050); color: var(--qm-primary-700); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.role-switch:focus-visible { outline: 3px solid var(--qm-primary-100); outline-offset: 2px; }
 .account-name { display: grid; max-width: 140px; overflow: hidden; color: var(--qm-ink-700); font-size: 14px; line-height: 1.2; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
 .account-name small { color: var(--qm-ink-500); font-size: 10px; }
 .login-link { display: inline-flex; min-height: 44px; align-items: center; gap: 4px; font-weight: 600; }
 .main-content { width: min(1200px, calc(100% - 48px)); margin: 0 auto; padding: 40px 0 64px; }
-@media (max-width: 900px) {
+@media (max-width: 1050px) {
   .header-inner { grid-template-columns: auto 1fr; padding-top: 8px; }
   .primary-nav { grid-column: 1 / -1; grid-row: 2; height: 48px; overflow-x: auto; }
   .primary-nav a { flex: 0 0 auto; padding: 0 12px; }
@@ -117,6 +143,7 @@ function logout() {
   .service-header { position: static; }
   .header-inner { gap: 8px; }
   .brand small, .account-name { display: none; }
+  .role-switch { min-height: 44px; }
   .main-content { padding: 24px 0 48px; }
 }
 </style>

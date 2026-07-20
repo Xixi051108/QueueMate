@@ -119,7 +119,7 @@ public class VenueService {
     }
 
     private Long resolveMerchantId(Long requestedMerchantId, AuthenticatedUser principal) {
-        if (principal.role() == UserRole.MERCHANT) {
+        if (principal.hasRole(UserRole.MERCHANT) && !principal.hasRole(UserRole.ADMIN)) {
             return principal.id();
         }
         if (requestedMerchantId == null) {
@@ -136,14 +136,14 @@ public class VenueService {
         if (principal == null) {
             throw new BusinessException(HttpStatus.UNAUTHORIZED, "AUTH_UNAUTHORIZED", "登录状态无效");
         }
-        if (principal.role() != UserRole.MERCHANT && principal.role() != UserRole.ADMIN) {
+        if (!principal.hasRole(UserRole.MERCHANT) && !principal.hasRole(UserRole.ADMIN)) {
             throw new BusinessException(HttpStatus.FORBIDDEN, "AUTH_FORBIDDEN", "无权管理地点");
         }
     }
 
     public void requireOwnerOrAdmin(Venue venue, AuthenticatedUser principal) {
         requireManager(principal);
-        if (principal.role() == UserRole.ADMIN) {
+        if (principal.hasRole(UserRole.ADMIN)) {
             return;
         }
         if (!venue.getMerchantId().equals(principal.id())) {

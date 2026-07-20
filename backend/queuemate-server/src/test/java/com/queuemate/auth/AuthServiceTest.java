@@ -11,10 +11,12 @@ import com.queuemate.common.exception.BusinessException;
 import com.queuemate.user.User;
 import com.queuemate.user.UserMapper;
 import com.queuemate.user.UserRole;
+import com.queuemate.user.UserRoleService;
 import com.queuemate.user.UserStatus;
 import com.queuemate.wallet.Wallet;
 import com.queuemate.wallet.WalletMapper;
 import java.math.BigDecimal;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,6 +41,9 @@ class AuthServiceTest {
     @Mock
     private JwtTokenService jwtTokenService;
 
+    @Mock
+    private UserRoleService userRoleService;
+
     private AuthService authService;
 
     @BeforeEach
@@ -47,7 +52,8 @@ class AuthServiceTest {
                 userMapper,
                 walletMapper,
                 passwordEncoder,
-                jwtTokenService
+                jwtTokenService,
+                userRoleService
         );
     }
 
@@ -77,6 +83,7 @@ class AuthServiceTest {
         verify(walletMapper).insert(walletCaptor.capture());
         assertThat(walletCaptor.getValue().getUserId()).isEqualTo(101L);
         assertThat(walletCaptor.getValue().getBalance()).isEqualByComparingTo(BigDecimal.ZERO);
+        verify(userRoleService).grantRole(101L, UserRole.USER, 101L);
     }
 
     @Test
@@ -102,6 +109,7 @@ class AuthServiceTest {
         when(passwordEncoder.matches("User123456", user.getPasswordHash())).thenReturn(true);
         when(jwtTokenService.generateToken(user)).thenReturn("signed.jwt.token");
         when(jwtTokenService.getExpireSeconds()).thenReturn(7200L);
+        when(userRoleService.rolesFor(user)).thenReturn(Set.of(UserRole.USER));
 
         LoginResponse response = authService.login(new LoginRequest("alice", "User123456"));
 
@@ -142,6 +150,7 @@ class AuthServiceTest {
     void currentUserReturnsLatestDatabaseUser() {
         User user = activeUser();
         when(userMapper.selectById(3001L)).thenReturn(user);
+        when(userRoleService.rolesFor(user)).thenReturn(Set.of(UserRole.USER));
 
         UserResponse response = authService.currentUser(
                 new AuthenticatedUser(3001L, "alice", UserRole.USER)

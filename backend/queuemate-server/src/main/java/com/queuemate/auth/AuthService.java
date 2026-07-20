@@ -5,6 +5,7 @@ import com.queuemate.common.exception.BusinessException;
 import com.queuemate.user.User;
 import com.queuemate.user.UserMapper;
 import com.queuemate.user.UserRole;
+import com.queuemate.user.UserRoleService;
 import com.queuemate.user.UserStatus;
 import com.queuemate.wallet.Wallet;
 import com.queuemate.wallet.WalletMapper;
@@ -23,17 +24,20 @@ public class AuthService {
     private final WalletMapper walletMapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenService jwtTokenService;
+    private final UserRoleService userRoleService;
 
     public AuthService(
             UserMapper userMapper,
             WalletMapper walletMapper,
             PasswordEncoder passwordEncoder,
-            JwtTokenService jwtTokenService
+            JwtTokenService jwtTokenService,
+            UserRoleService userRoleService
     ) {
         this.userMapper = userMapper;
         this.walletMapper = walletMapper;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenService = jwtTokenService;
+        this.userRoleService = userRoleService;
     }
 
     @Transactional
@@ -62,6 +66,7 @@ public class AuthService {
         wallet.setBalance(BigDecimal.ZERO);
         wallet.setStatus(WalletStatus.ACTIVE);
         walletMapper.insert(wallet);
+        userRoleService.grantRole(user.getId(), UserRole.USER, user.getId());
 
         return new RegisterResponse(user.getId(), user.getUsername(), user.getRole());
     }
@@ -85,7 +90,7 @@ public class AuthService {
                 token,
                 "Bearer",
                 jwtTokenService.getExpireSeconds(),
-                UserResponse.from(user)
+                UserResponse.from(user, userRoleService.rolesFor(user))
         );
     }
 
@@ -94,7 +99,7 @@ public class AuthService {
         if (user == null) {
             throw new BusinessException(HttpStatus.UNAUTHORIZED, "AUTH_UNAUTHORIZED", "登录状态无效");
         }
-        return UserResponse.from(user);
+        return UserResponse.from(user, userRoleService.rolesFor(user));
     }
 
     private User findByUsername(String username) {

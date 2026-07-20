@@ -10,8 +10,10 @@ const routes = [
   { path: '/bookings', name: 'bookings', component: () => import('../views/BookingsView.vue'), meta: { title: '我的预约', requiresAuth: true, roles: ['USER'] } },
   { path: '/wallet', name: 'wallet', component: () => import('../views/WalletView.vue'), meta: { title: '我的钱包', requiresAuth: true, roles: ['USER'] } },
   { path: '/queue', name: 'queue', component: () => import('../views/QueueView.vue'), meta: { title: '我的排队', requiresAuth: true, roles: ['USER'] } },
+  { path: '/merchant/application', name: 'merchant-application', component: () => import('../views/MerchantApplicationView.vue'), meta: { title: '商家入驻', requiresAuth: true, roles: ['USER'] } },
   { path: '/manage/venues', name: 'manage-venues', component: () => import('../views/OperatorVenuesView.vue'), meta: { title: '场所工作台', requiresAuth: true, roles: ['MERCHANT', 'ADMIN'] } },
   { path: '/manage/venues/:id', name: 'manage-venue', component: () => import('../views/OperatorVenueView.vue'), meta: { title: '场所运营', requiresAuth: true, roles: ['MERCHANT', 'ADMIN'] } },
+  { path: '/admin/merchant-applications', name: 'admin-merchant-applications', component: () => import('../views/AdminMerchantApplicationsView.vue'), meta: { title: '入驻审核', requiresAuth: true, roles: ['ADMIN'] } },
   { path: '/admin/wallets', name: 'admin-wallets', component: () => import('../views/AdminWalletView.vue'), meta: { title: '钱包管理', requiresAuth: true, roles: ['ADMIN'] } },
   { path: '/admin/bookings', name: 'admin-bookings', component: () => import('../views/AdminBookingView.vue'), meta: { title: '预约处理', requiresAuth: true, roles: ['ADMIN'] } },
   { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('../views/NotFoundView.vue'), meta: { title: '页面不存在' } },
@@ -33,7 +35,7 @@ router.beforeEach((to) => {
     return { name: 'login', query: { redirect: to.fullPath } }
   }
   if (to.meta.roles && !to.meta.roles.includes(authState.role.value)) {
-    return { name: 'venues' }
+    return homeForRole(authState.role.value)
   }
   if (['login', 'register'].includes(to.name) && authState.isAuthenticated.value) {
     return homeForRole(authState.role.value)

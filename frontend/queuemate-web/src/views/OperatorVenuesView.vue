@@ -3,13 +3,14 @@ import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { Edit, Plus, Setting, SwitchButton } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import StatePanel from '../components/StatePanel.vue'
-import { venueApi } from '../services/api'
+import { merchantApplicationApi, venueApi } from '../services/api'
 import { authState } from '../state/auth'
 import { formatMoney, labelOf, statusType } from '../utils/format'
 
 const loading = ref(true)
 const error = ref('')
 const venues = ref([])
+const merchants = ref([])
 const keyword = ref('')
 const status = ref('')
 const dialogOpen = ref(false)
@@ -27,7 +28,7 @@ const rules = {
   description: [{ max: 500, message: '地点介绍最多 500 个字符', trigger: 'blur' }],
   addressText: [{ max: 255, message: '地点地址最多 255 个字符', trigger: 'blur' }],
   defaultPrice: [{ required: true, message: '请输入默认价格', trigger: 'blur' }],
-  merchantId: [{ validator: (_rule, value, callback) => !isAdmin.value || Number(value) > 0 ? callback() : callback(new Error('请输入有效的商家用户 ID')), trigger: 'blur' }],
+  merchantId: [{ validator: (_rule, value, callback) => !isAdmin.value || Number(value) > 0 ? callback() : callback(new Error('请选择商家账号')), trigger: 'change' }],
 }
 
 const managedVenues = computed(() => {
@@ -44,7 +45,13 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    venues.value = await venueApi.list()
+    if (isAdmin.value) {
+      const [venueRows, merchantRows] = await Promise.all([venueApi.list(), merchantApplicationApi.merchants()])
+      venues.value = venueRows
+      merchants.value = merchantRows
+    } else {
+      venues.value = await venueApi.list()
+    }
   } catch (err) {
     error.value = err.message
   } finally {
@@ -136,7 +143,7 @@ onMounted(load)
 
     <el-skeleton v-if="loading" :rows="8" animated />
     <StatePanel v-else-if="error" title="场所列表加载失败" :description="error" error @retry="load" />
-    <StatePanel v-else-if="!managedVenues.length" title="没有找到可管理的地点" :description="isAdmin ? '创建地点时需要填写有效的商家用户 ID。' : '创建第一个地点后，可以继续配置预约时段和排队服务。'"><el-button type="primary" :icon="Plus" @click="openCreate">创建地点</el-button></StatePanel>
+    <StatePanel v-else-if="!managedVenues.length" title="没有找到可管理的地点" :description="isAdmin ? '先审核商家入驻申请，再为已开通商家身份的账号创建地点。' : '创建第一个地点后，可以继续配置预约时段和排队服务。'"><el-button type="primary" :icon="Plus" @click="openCreate">创建地点</el-button></StatePanel>
     <section v-else class="managed-grid" aria-label="可管理场所">
       <article v-for="venue in managedVenues" :key="venue.id" class="managed-card surface">
         <div class="card-heading"><div><span>{{ labelOf(venue.category) }} · ID {{ venue.id }}</span><h2>{{ venue.name }}</h2></div><el-tag :type="statusType(venue.status)" round>{{ labelOf(venue.status) }}</el-tag></div>
@@ -154,7 +161,7 @@ onMounted(load)
     <el-dialog v-model="dialogOpen" :title="editingId ? '编辑地点' : '创建地点'" width="min(680px, calc(100vw - 32px))" destroy-on-close>
       <el-form ref="formRef" :model="form" :rules="rules" label-position="top" @submit.prevent="save">
         <div class="form-grid"><el-form-item label="地点名称" prop="name"><el-input v-model.trim="form.name" maxlength="100" show-word-limit placeholder="例如：南山自习室" /></el-form-item><el-form-item label="地点类别" prop="category"><el-select v-model="form.category"><el-option v-for="item in categories" :key="item" :label="labelOf(item)" :value="item" /></el-select></el-form-item></div>
-        <el-form-item v-if="!editingId && isAdmin" label="商家用户 ID" prop="merchantId"><el-input-number v-model="form.merchantId" :min="1" :step="1" controls-position="right" /><p class="form-help">后端暂未提供商家用户列表，请填写已存在且启用的商家账号 ID。</p></el-form-item>
+        <el-form-item v-if="!editingId && isAdmin" label="归属商家" prop="merchantId"><el-select v-model="form.merchantId" filterable placeholder="选择已通过审核的商家"><el-option v-for="merchant in merchants" :key="merchant.id" :label="`${merchant.displayName}（${merchant.username}）`" :value="Number(merchant.id)" /></el-select><p class="form-help">列表仅包含已启用且拥有商家身份的账号。</p></el-form-item>
         <el-form-item label="地址" prop="addressText"><el-input v-model.trim="form.addressText" maxlength="255" show-word-limit placeholder="线下地点的文字地址" /></el-form-item>
         <el-form-item label="地点介绍" prop="description"><el-input v-model.trim="form.description" type="textarea" :rows="3" maxlength="500" show-word-limit placeholder="说明环境、服务方式或注意事项" /></el-form-item>
         <div class="form-grid"><el-form-item label="默认价格（元）" prop="defaultPrice"><el-input-number v-model="form.defaultPrice" :min="0" :max="99999999" :precision="2" :step="5" controls-position="right" /></el-form-item><div class="service-switches"><label><span>预约服务</span><el-switch v-model="form.bookingEnabled" /></label><label><span>现场排队</span><el-switch v-model="form.queueEnabled" /></label></div></div>

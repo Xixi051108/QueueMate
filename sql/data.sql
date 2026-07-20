@@ -9,6 +9,14 @@ insert into users (id, username, password_hash, role, display_name, phone, statu
 (3002, 'bob', '{bcrypt}$2a$10$UeeDl4Q10kiVbaMczFrvLeGz4XilMsAdlh2kwND8pQv043HM2l0a.', 'USER', 'Bob', '13800003002', 'ACTIVE'),
 (3003, 'carol', '{bcrypt}$2a$10$UeeDl4Q10kiVbaMczFrvLeGz4XilMsAdlh2kwND8pQv043HM2l0a.', 'USER', 'Carol', '13800003003', 'ACTIVE');
 
+insert into user_roles (user_id, role, granted_by) values
+(1001, 'ADMIN', 1001),
+(2001, 'MERCHANT', 1001),
+(2002, 'MERCHANT', 1001),
+(3001, 'USER', 3001),
+(3002, 'USER', 3002),
+(3003, 'USER', 3003);
+
 insert into wallets (id, user_id, balance, status) values
 (9001, 3001, 200.00, 'ACTIVE'),
 (9002, 3002, 80.00, 'ACTIVE'),

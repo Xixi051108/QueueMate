@@ -28,6 +28,9 @@ export function isoDate(offsetDays = 0) {
 }
 
 const labels = {
+  PENDING: '待审核',
+  APPROVED: '已通过',
+  REJECTED: '已驳回',
   ACTIVE: '营业中',
   INACTIVE: '已停用',
   OPEN: '可预约',
@@ -68,8 +71,9 @@ export function labelOf(value) {
 }
 
 export function statusType(value) {
-  if (['ACTIVE', 'OPEN', 'FULFILLED', 'COMPLETED', 'REDEEMED', 'PAID', 'SUCCESS'].includes(value)) return 'success'
-  if (['WAITING', 'CALLED', 'BOOKED', 'AVAILABLE'].includes(value)) return 'primary'
+  if (['ACTIVE', 'OPEN', 'FULFILLED', 'COMPLETED', 'REDEEMED', 'PAID', 'SUCCESS', 'APPROVED'].includes(value)) return 'success'
+  if (['WAITING', 'CALLED', 'BOOKED', 'AVAILABLE', 'PENDING'].includes(value)) return 'primary'
+  if (value === 'REJECTED') return 'danger'
   if (['NO_SHOW', 'MISSED', 'EXPIRED'].includes(value)) return 'warning'
   if (['FROZEN', 'FAILED'].includes(value)) return 'danger'
   return 'info'

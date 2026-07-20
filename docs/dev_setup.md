@@ -49,6 +49,20 @@ VS Code 已安装 Maven for Java 插件，可识别 `backend/queuemate-server/po
 
 ## 4. 后端启动
 
+已有 QueueMate 本地数据库在启动新版后端前，需要先导入商家入驻迁移：
+
+```powershell
+& 'D:\MySQL\MySQL Server 8.0\bin\mysql.exe' --default-character-set=utf8mb4 -u root -p queuemate
+```
+
+进入 MySQL 后执行：
+
+```sql
+source D:/QueueMate/sql/migrations/20260720_merchant_onboarding.sql;
+```
+
+该迁移会创建 `user_roles` 和 `merchant_applications`，并把现有账号角色安全回填到多身份表；脚本可重复执行。
+
 进入后端目录：
 
 ```powershell

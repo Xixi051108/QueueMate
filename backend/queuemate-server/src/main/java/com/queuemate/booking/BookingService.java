@@ -246,7 +246,7 @@ public class BookingService {
         if (principal == null) {
             throw new BusinessException(HttpStatus.UNAUTHORIZED, "AUTH_UNAUTHORIZED", "登录状态无效");
         }
-        if (principal.role() != UserRole.USER) {
+        if (!principal.hasRole(UserRole.USER)) {
             throw new BusinessException(HttpStatus.FORBIDDEN, "AUTH_FORBIDDEN", "仅普通用户可以预约");
         }
     }
@@ -255,10 +255,10 @@ public class BookingService {
         if (principal == null) {
             throw new BusinessException(HttpStatus.UNAUTHORIZED, "AUTH_UNAUTHORIZED", "登录状态无效");
         }
-        if (principal.role() == UserRole.ADMIN) {
+        if (principal.hasRole(UserRole.ADMIN)) {
             return;
         }
-        if (principal.role() != UserRole.USER || !booking.getUserId().equals(principal.id())) {
+        if (!principal.hasRole(UserRole.USER) || !booking.getUserId().equals(principal.id())) {
             throw new BusinessException(
                     HttpStatus.FORBIDDEN,
                     "RESOURCE_NOT_OWNED",

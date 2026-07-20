@@ -278,7 +278,7 @@ public class WalletService {
         if (principal == null) {
             throw new BusinessException(HttpStatus.UNAUTHORIZED, "AUTH_UNAUTHORIZED", "登录状态无效");
         }
-        if (principal.role() != UserRole.USER) {
+        if (!principal.hasRole(UserRole.USER)) {
             throw new BusinessException(HttpStatus.FORBIDDEN, "AUTH_FORBIDDEN", "仅普通用户可以使用钱包");
         }
     }
@@ -287,7 +287,7 @@ public class WalletService {
         if (principal == null) {
             throw new BusinessException(HttpStatus.UNAUTHORIZED, "AUTH_UNAUTHORIZED", "登录状态无效");
         }
-        if (principal.role() != UserRole.ADMIN) {
+        if (!principal.hasRole(UserRole.ADMIN)) {
             throw new BusinessException(HttpStatus.FORBIDDEN, "AUTH_FORBIDDEN", "仅管理员可以执行此操作");
         }
     }
