@@ -1,11 +1,14 @@
 package com.queuemate.auth;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.queuemate.user.User;
 import com.queuemate.user.UserRole;
 import com.queuemate.user.UserStatus;
 import java.util.Set;
 
 public record UserResponse(
+        @JsonSerialize(using = ToStringSerializer.class)
         Long id,
         String username,
         String displayName,
