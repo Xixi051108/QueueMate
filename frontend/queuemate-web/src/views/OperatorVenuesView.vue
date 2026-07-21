@@ -3,6 +3,7 @@ import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { Edit, Plus, Setting, SwitchButton } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import StatePanel from '../components/StatePanel.vue'
+import { VENUE_CATEGORIES } from '../constants/venue'
 import { merchantApplicationApi, venueApi } from '../services/api'
 import { authState } from '../state/auth'
 import { formatMoney, labelOf, statusType } from '../utils/format'
@@ -21,7 +22,7 @@ const formRef = ref()
 const isAdmin = computed(() => authState.role.value === 'ADMIN')
 const form = reactive(emptyForm())
 
-const categories = ['TEA_SHOP', 'STUDY_ROOM', 'BADMINTON_COURT']
+const categories = VENUE_CATEGORIES
 const rules = {
   name: [{ required: true, message: '请输入地点名称', trigger: 'blur' }, { max: 100, message: '地点名称最多 100 个字符', trigger: 'blur' }],
   category: [{ required: true, message: '请选择地点类别', trigger: 'change' }],

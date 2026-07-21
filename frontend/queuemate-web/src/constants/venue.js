@@ -1,0 +1,9 @@
+export const VENUE_CATEGORIES = [
+  'TEA_SHOP',
+  'STUDY_ROOM',
+  'BADMINTON_COURT',
+  'RESTAURANT',
+  'HOTEL',
+  'MAKEUP_STUDIO',
+  'SHOPPING_MALL',
+]

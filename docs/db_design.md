@@ -79,7 +79,7 @@
 | --- | --- | --- |
 | id | bigint | 主键 |
 | name | varchar(100) | 地点名称 |
-| category | varchar(30) | `TEA_SHOP` / `STUDY_ROOM` / `BADMINTON_COURT` |
+| category | varchar(30) | `TEA_SHOP` / `STUDY_ROOM` / `BADMINTON_COURT` / `RESTAURANT` / `HOTEL` / `MAKEUP_STUDIO` / `SHOPPING_MALL` |
 | description | varchar(500) | 地点描述 |
 | merchant_id | bigint | 所属商家用户 ID |
 | address_text | varchar(255) | 模拟地址描述 |
@@ -303,6 +303,10 @@
 - `TEA_SHOP`
 - `STUDY_ROOM`
 - `BADMINTON_COURT`
+- `RESTAURANT`
+- `HOTEL`
+- `MAKEUP_STUDIO`
+- `SHOPPING_MALL`
 
 ### 4.4 地点状态
 

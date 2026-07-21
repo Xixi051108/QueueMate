@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { ArrowLeft, ArrowRight, Check, DocumentChecked, OfficeBuilding, Promotion } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import StatePanel from '../components/StatePanel.vue'
+import { VENUE_CATEGORIES } from '../constants/venue'
 import { authApi, merchantApplicationApi } from '../services/api'
 import { authState } from '../state/auth'
 import { formatDateTime, labelOf, statusType } from '../utils/format'
@@ -19,7 +20,7 @@ const formRef = ref()
 const statusHeading = ref()
 const form = reactive(emptyForm())
 
-const categories = ['TEA_SHOP', 'STUDY_ROOM', 'BADMINTON_COURT']
+const categories = VENUE_CATEGORIES
 const latest = computed(() => history.value[0] || null)
 const canApply = computed(() => !latest.value || latest.value.status === 'REJECTED')
 const stepFields = [

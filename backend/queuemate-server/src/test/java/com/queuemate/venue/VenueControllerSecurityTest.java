@@ -21,6 +21,8 @@ import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -71,6 +73,18 @@ class VenueControllerSecurityTest {
         mockMvc.perform(get("/api/v1/venues").queryParam("category", "UNKNOWN"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("PARAM_INVALID"));
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = VenueCategory.class, names = {
+            "RESTAURANT", "HOTEL", "MAKEUP_STUDIO", "SHOPPING_MALL"
+    })
+    void newCategoryCanBeUsedAsVenueFilter(VenueCategory category) throws Exception {
+        when(venueService.list(any(), any(), any())).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/v1/venues").queryParam("category", category.name()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("0"));
     }
 
     @Test

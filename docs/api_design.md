@@ -148,7 +148,7 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 
 查询参数：
 
-- `category`：可选，`TEA_SHOP` / `STUDY_ROOM` / `BADMINTON_COURT`
+- `category`：可选，`TEA_SHOP` / `STUDY_ROOM` / `BADMINTON_COURT` / `RESTAURANT` / `HOTEL` / `MAKEUP_STUDIO` / `SHOPPING_MALL`
 - `status`：可选，`ACTIVE` / `INACTIVE`
 - `keyword`：可选，同时模糊匹配名称、描述和模拟地址
 

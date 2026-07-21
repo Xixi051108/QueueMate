@@ -3,18 +3,14 @@ import { onMounted, reactive, ref } from 'vue'
 import { Refresh, Search } from '@element-plus/icons-vue'
 import VenueCard from '../components/VenueCard.vue'
 import StatePanel from '../components/StatePanel.vue'
+import { VENUE_CATEGORIES } from '../constants/venue'
 import { venueApi } from '../services/api'
+import { labelOf } from '../utils/format'
 
 const loading = ref(true)
 const error = ref('')
 const venues = ref([])
 const filters = reactive({ keyword: '', category: '', status: 'ACTIVE' })
-
-const categories = [
-  { value: 'TEA_SHOP', label: '奶茶店' },
-  { value: 'STUDY_ROOM', label: '自习室' },
-  { value: 'BADMINTON_COURT', label: '羽毛球场' },
-]
 
 async function loadVenues() {
   loading.value = true
@@ -58,7 +54,7 @@ onMounted(loadVenues)
       <div class="filter-field">
         <label class="field-label" for="venue-category">场所类型</label>
         <el-select id="venue-category" v-model="filters.category" clearable placeholder="全部类型">
-          <el-option v-for="item in categories" :key="item.value" :label="item.label" :value="item.value" />
+          <el-option v-for="item in VENUE_CATEGORIES" :key="item" :label="labelOf(item)" :value="item" />
         </el-select>
       </div>
       <div class="filter-field">
