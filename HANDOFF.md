@@ -127,6 +127,7 @@ GET  /api/v1/health
 
 ```text
 GET   /api/v1/venues
+GET   /api/v1/venues/page
 GET   /api/v1/venues/{id}
 POST  /api/v1/venues
 PUT   /api/v1/venues/{id}
@@ -137,6 +138,7 @@ PATCH /api/v1/venues/{id}/status
 
 - 地点列表和详情允许匿名访问。
 - 列表支持 `category`、`status`、`keyword` 筛选。
+- “发现地点”调用后端分页接口，每页固定展示 9 家；筛选条件和页码保存在 URL 查询参数中，进入详情后返回或使用浏览器后退均可恢复原列表状态。
 - 地点分类共 7 类：`TEA_SHOP`、`STUDY_ROOM`、`BADMINTON_COURT`、`RESTAURANT`、`HOTEL`、`MAKEUP_STUDIO`、`SHOPPING_MALL`，前端分别显示为奶茶店、自习室、羽毛球场、饭店、酒店、妆造店和商场。
 - 本地演示数据共 82 个地点；在原有 12 个地点基础上，7 个分类各新增 10 家名称、简介、地址、价格和服务开关完整的演示店铺。全新数据库由 `sql/data.sql` 初始化，已有数据库执行 `sql/migrations/20260725_add_category_demo_venues.sql` 增量补充。
 - `MERCHANT/ADMIN` 可创建地点，`USER` 返回统一 `403/AUTH_FORBIDDEN`。
@@ -244,7 +246,7 @@ cd D:\QueueMate\backend\queuemate-server
 最后验证结果：
 
 ```text
-Tests run: 137, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 140, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 
@@ -255,8 +257,8 @@ BUILD SUCCESS
 - `JwtTokenServiceTest`：2 个
 - `UserResponseTest`：1 个
 - `QueueMateApplicationTests`：1 个
-- `VenueServiceTest`：11 个
-- `VenueControllerSecurityTest`：10 个
+- `VenueServiceTest`：12 个
+- `VenueControllerSecurityTest`：12 个
 - `BookingSlotServiceTest`：13 个
 - `BookingSlotControllerSecurityTest`：7 个
 - `BookingServiceTest`：18 个
@@ -334,7 +336,7 @@ Postman 资产：
 
 - `tests/postman/QueueMate.postman_collection.json`
 - `tests/postman/QueueMate.local.postman_environment.json`
-- 当前共 43 个请求，JSON 可正常解析。
+- 当前共 44 个请求，JSON 可正常解析。
 - 已加入地点公开查询、USER 禁止创建、商家创建/更新/停用和不存在地点断言。
 - 已加入时段公开查询、USER 禁止创建、商家创建、重复时段和关闭时段断言。
 - 已加入钱包、预约、退款、消费码、排队状态机、管理员余额调整和繁忙统计断言。
@@ -443,7 +445,6 @@ SQL 文件和本地数据库保存的是 BCrypt 哈希。以上明文仅为公�
 - Postman 尚未通过 Newman 执行。
 - 管理员取消预约仍需手动输入预约 ID，因为后端没有全局预约列表接口。
 - 已完成商家申请、管理员审核和商家创建地点的人工浏览器写流程；预约、充值、叫号、核销和余额调整仍需正式 Playwright 用例覆盖并自动清理测试数据。
-- 地点列表首版返回完整列表，尚未分页；数据量扩大后需要升级为分页响应。
 - 时段首版只禁止完全相同的时间范围，没有禁止重叠时段。
 - 时段创建后暂不支持修改日期、时间、容量和价格，只支持打开或关闭。
 - 我的预约首版返回完整列表，尚未分页。
@@ -559,4 +560,4 @@ cd D:\QueueMate\frontend\queuemate-web
 pnpm build
 ```
 
-最后检查前后端健康状态。当前基线应看到后端 137 个测试全部通过、Vite 生产构建成功；认证、商家入驻、地点、时段、预约、钱包、消费码、排队和统计接口均可用，普通用户、商家和管理员前端页面均可访问，并且项目中不存在 `password-strength`、`PasswordPolicy` 或 `PASSWORD_WEAK`。
+最后检查前后端健康状态。当前基线应看到后端 140 个测试全部通过、Vite 生产构建成功；认证、商家入驻、地点、时段、预约、钱包、消费码、排队和统计接口均可用，普通用户、商家和管理员前端页面均可访问，并且项目中不存在 `password-strength`、`PasswordPolicy` 或 `PASSWORD_WEAK`。

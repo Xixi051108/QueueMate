@@ -1,6 +1,7 @@
 package com.queuemate.venue;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
@@ -11,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.queuemate.auth.AuthenticatedUser;
 import com.queuemate.auth.JwtAuthenticationFilter;
+import com.queuemate.common.api.PageResponse;
 import com.queuemate.common.exception.GlobalExceptionHandler;
 import com.queuemate.config.RestAccessDeniedHandler;
 import com.queuemate.config.RestAuthenticationEntryPoint;
@@ -66,6 +68,30 @@ class VenueControllerSecurityTest {
         mockMvc.perform(get("/api/v1/venues"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].id").value("4001"));
+    }
+
+    @Test
+    void anonymousCanPageVenues() throws Exception {
+        when(venueService.listPage(any(), any(), any(), anyInt(), anyInt()))
+                .thenReturn(new PageResponse<>(List.of(sampleResponse()), 14, 2, 9, 2));
+
+        mockMvc.perform(get("/api/v1/venues/page")
+                        .queryParam("category", "TEA_SHOP")
+                        .queryParam("page", "2")
+                        .queryParam("pageSize", "9"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items[0].id").value("4001"))
+                .andExpect(jsonPath("$.data.total").value(14))
+                .andExpect(jsonPath("$.data.page").value(2))
+                .andExpect(jsonPath("$.data.pageSize").value(9))
+                .andExpect(jsonPath("$.data.totalPages").value(2));
+    }
+
+    @Test
+    void invalidPageReturnsParameterError() throws Exception {
+        mockMvc.perform(get("/api/v1/venues/page").queryParam("page", "0"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("PARAM_INVALID"));
     }
 
     @Test

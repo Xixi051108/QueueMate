@@ -2,7 +2,10 @@
 import { ArrowRight, Calendar, Location, Tickets } from '@element-plus/icons-vue'
 import { labelOf } from '../utils/format'
 
-defineProps({ venue: { type: Object, required: true } })
+defineProps({
+  venue: { type: Object, required: true },
+  linkQuery: { type: Object, default: () => ({}) },
+})
 </script>
 
 <template>
@@ -25,7 +28,11 @@ defineProps({ venue: { type: Object, required: true } })
       <span :class="{ enabled: venue.bookingEnabled }"><el-icon><Calendar /></el-icon>预约</span>
       <span :class="{ enabled: venue.queueEnabled }"><el-icon><Tickets /></el-icon>排队</span>
     </div>
-    <RouterLink class="card-link" :to="`/venues/${venue.id}`" :aria-label="`查看${venue.name}详情`">
+    <RouterLink
+      class="card-link"
+      :to="{ name: 'venue-detail', params: { id: venue.id }, query: linkQuery }"
+      :aria-label="`查看${venue.name}详情`"
+    >
       查看时段与进度
       <el-icon aria-hidden="true"><ArrowRight /></el-icon>
     </RouterLink>

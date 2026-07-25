@@ -8,6 +8,7 @@ export const authApi = {
 
 export const venueApi = {
   list: (params) => http.get('/venues', { params }),
+  page: (params) => http.get('/venues/page', { params }),
   get: (id) => http.get(`/venues/${id}`),
   create: (payload) => http.post('/venues', payload),
   update: (id, payload) => http.put(`/venues/${id}`, payload),

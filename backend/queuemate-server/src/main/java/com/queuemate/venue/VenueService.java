@@ -3,6 +3,7 @@ package com.queuemate.venue;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.queuemate.auth.AuthenticatedUser;
+import com.queuemate.common.api.PageResponse;
 import com.queuemate.common.exception.BusinessException;
 import com.queuemate.user.User;
 import com.queuemate.user.UserMapper;
@@ -27,22 +28,30 @@ public class VenueService {
     }
 
     public List<VenueResponse> list(VenueCategory category, VenueStatus status, String keyword) {
-        LambdaQueryWrapper<Venue> query = Wrappers.lambdaQuery();
-        query.eq(category != null, Venue::getCategory, category)
-                .eq(status != null, Venue::getStatus, status);
-        if (StringUtils.hasText(keyword)) {
-            String normalizedKeyword = keyword.trim();
-            query.and(nested -> nested
-                    .like(Venue::getName, normalizedKeyword)
-                    .or()
-                    .like(Venue::getDescription, normalizedKeyword)
-                    .or()
-                    .like(Venue::getAddressText, normalizedKeyword));
-        }
+        LambdaQueryWrapper<Venue> query = buildListQuery(category, status, keyword);
         query.orderByAsc(Venue::getId);
         return venueMapper.selectList(query).stream()
                 .map(VenueResponse::from)
                 .toList();
+    }
+
+    public PageResponse<VenueResponse> listPage(
+            VenueCategory category,
+            VenueStatus status,
+            String keyword,
+            int page,
+            int pageSize
+    ) {
+        LambdaQueryWrapper<Venue> query = buildListQuery(category, status, keyword);
+        long total = venueMapper.selectCount(query);
+        long offset = (long) (page - 1) * pageSize;
+        query.orderByAsc(Venue::getId)
+                .last("limit " + pageSize + " offset " + offset);
+        List<VenueResponse> items = venueMapper.selectList(query).stream()
+                .map(VenueResponse::from)
+                .toList();
+        int totalPages = total == 0 ? 0 : (int) ((total + pageSize - 1) / pageSize);
+        return new PageResponse<>(items, total, page, pageSize, totalPages);
     }
 
     public VenueResponse get(Long id) {
@@ -163,6 +172,26 @@ public class VenueService {
 
     private BusinessException venueNameExists() {
         return new BusinessException(HttpStatus.CONFLICT, "VENUE_NAME_EXISTS", "当前商家已存在同名地点");
+    }
+
+    private LambdaQueryWrapper<Venue> buildListQuery(
+            VenueCategory category,
+            VenueStatus status,
+            String keyword
+    ) {
+        LambdaQueryWrapper<Venue> query = Wrappers.lambdaQuery();
+        query.eq(category != null, Venue::getCategory, category)
+                .eq(status != null, Venue::getStatus, status);
+        if (StringUtils.hasText(keyword)) {
+            String normalizedKeyword = keyword.trim();
+            query.and(nested -> nested
+                    .like(Venue::getName, normalizedKeyword)
+                    .or()
+                    .like(Venue::getDescription, normalizedKeyword)
+                    .or()
+                    .like(Venue::getAddressText, normalizedKeyword));
+        }
+        return query;
     }
 
     private void applyWritableFields(

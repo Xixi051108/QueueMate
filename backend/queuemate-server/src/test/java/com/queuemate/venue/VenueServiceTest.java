@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.queuemate.auth.AuthenticatedUser;
+import com.queuemate.common.api.PageResponse;
 import com.queuemate.common.exception.BusinessException;
 import com.queuemate.user.User;
 import com.queuemate.user.UserMapper;
@@ -52,6 +53,26 @@ class VenueServiceTest {
         assertThat(response).hasSize(1);
         assertThat(response.getFirst().id()).isEqualTo(4001L);
         assertThat(response.getFirst().category()).isEqualTo(VenueCategory.TEA_SHOP);
+    }
+
+    @Test
+    void publicPageReturnsItemsAndPaginationMetadata() {
+        when(venueMapper.selectCount(any())).thenReturn(14L);
+        when(venueMapper.selectList(any())).thenReturn(List.of(activeVenue(4001L, 2001L)));
+
+        PageResponse<VenueResponse> response = venueService.listPage(
+                VenueCategory.TEA_SHOP,
+                VenueStatus.ACTIVE,
+                null,
+                2,
+                9
+        );
+
+        assertThat(response.items()).hasSize(1);
+        assertThat(response.total()).isEqualTo(14);
+        assertThat(response.page()).isEqualTo(2);
+        assertThat(response.pageSize()).isEqualTo(9);
+        assertThat(response.totalPages()).isEqualTo(2);
     }
 
     @Test

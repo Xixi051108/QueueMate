@@ -2,7 +2,10 @@ package com.queuemate.venue;
 
 import com.queuemate.auth.AuthenticatedUser;
 import com.queuemate.common.api.ApiResponse;
+import com.queuemate.common.api.PageResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -38,6 +41,17 @@ public class VenueController {
             @RequestParam(required = false) String keyword
     ) {
         return ApiResponse.success(venueService.list(category, status, keyword));
+    }
+
+    @GetMapping("/page")
+    public ApiResponse<PageResponse<VenueResponse>> page(
+            @RequestParam(required = false) VenueCategory category,
+            @RequestParam(required = false) VenueStatus status,
+            @RequestParam(required = false) String keyword,
+            @Min(1) @RequestParam(defaultValue = "1") int page,
+            @Min(1) @Max(100) @RequestParam(defaultValue = "9") int pageSize
+    ) {
+        return ApiResponse.success(venueService.listPage(category, status, keyword, page, pageSize));
     }
 
     @GetMapping("/{id}")

@@ -154,6 +154,13 @@ token 缺失、伪造、过期或对应用户不可用时返回：`401 / AUTH_UN
 
 权限：公开接口。
 
+发现地点页面使用分页接口 `GET /venues/page`，支持相同的 `category`、`status`、`keyword` 条件，并增加：
+
+- `page`：页码，从 1 开始，默认 1
+- `pageSize`：每页数量，范围 1 到 100，默认 9
+
+分页响应的 `data` 包含 `items`、`total`、`page`、`pageSize` 和 `totalPages`。筛选条件和页码会同步到浏览器 URL，以便从详情页返回时恢复原筛选结果和页码。
+
 ### 3.2 `GET /venues/{id}`
 
 说明：查看地点详情。

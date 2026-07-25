@@ -19,6 +19,13 @@ const queue = ref(null)
 
 const isUser = computed(() => authState.role.value === 'USER')
 const isOperator = computed(() => ['MERCHANT', 'ADMIN'].includes(authState.role.value))
+const listQuery = computed(() => {
+  const query = {}
+  for (const key of ['keyword', 'category', 'status', 'page']) {
+    if (route.query[key] !== undefined) query[key] = route.query[key]
+  }
+  return query
+})
 
 async function load() {
   loading.value = true
@@ -110,7 +117,15 @@ onMounted(load)
 
 <template>
   <div class="page">
-    <div><el-button text :icon="ArrowLeft" @click="router.push('/venues')">返回地点列表</el-button></div>
+    <div>
+      <el-button
+        text
+        :icon="ArrowLeft"
+        @click="router.push({ name: 'venues', query: listQuery })"
+      >
+        返回地点列表
+      </el-button>
+    </div>
     <el-skeleton v-if="loading" :rows="10" animated />
     <StatePanel v-else-if="error" title="地点详情加载失败" :description="error" error @retry="load" />
     <template v-else-if="venue">

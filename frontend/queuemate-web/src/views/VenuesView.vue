@@ -1,5 +1,6 @@
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { reactive, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { Refresh, Search } from '@element-plus/icons-vue'
 import VenueCard from '../components/VenueCard.vue'
 import StatePanel from '../components/StatePanel.vue'
@@ -7,20 +8,60 @@ import { VENUE_CATEGORIES } from '../constants/venue'
 import { venueApi } from '../services/api'
 import { labelOf } from '../utils/format'
 
+const route = useRoute()
+const router = useRouter()
+const PAGE_SIZE = 9
 const loading = ref(true)
 const error = ref('')
 const venues = ref([])
+const total = ref(0)
+const currentPage = ref(1)
 const filters = reactive({ keyword: '', category: '', status: 'ACTIVE' })
+
+function queryValue(value) {
+  return Array.isArray(value) ? value[0] : value
+}
+
+function restoreFiltersFromRoute() {
+  const keyword = queryValue(route.query.keyword)
+  const category = queryValue(route.query.category)
+  const status = queryValue(route.query.status)
+
+  filters.keyword = typeof keyword === 'string' ? keyword : ''
+  filters.category = VENUE_CATEGORIES.includes(category) ? category : ''
+  filters.status = status === 'ALL' ? '' : status === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE'
+  const page = Number.parseInt(queryValue(route.query.page), 10)
+  currentPage.value = Number.isSafeInteger(page) && page > 0 ? page : 1
+}
+
+function filtersToQuery(page = 1) {
+  const query = {}
+  const keyword = filters.keyword.trim()
+  if (keyword) query.keyword = keyword
+  if (filters.category) query.category = filters.category
+  if (filters.status === 'INACTIVE') query.status = 'INACTIVE'
+  if (!filters.status) query.status = 'ALL'
+  if (page > 1) query.page = String(page)
+  return query
+}
 
 async function loadVenues() {
   loading.value = true
   error.value = ''
   try {
-    venues.value = await venueApi.list({
+    const result = await venueApi.page({
       keyword: filters.keyword.trim() || undefined,
       category: filters.category || undefined,
       status: filters.status || undefined,
+      page: currentPage.value,
+      pageSize: PAGE_SIZE,
     })
+    if (result.totalPages > 0 && currentPage.value > result.totalPages) {
+      await navigateToPage(result.totalPages)
+      return
+    }
+    venues.value = result.items
+    total.value = result.total
   } catch (err) {
     error.value = err.message
   } finally {
@@ -28,12 +69,36 @@ async function loadVenues() {
   }
 }
 
-function reset() {
-  Object.assign(filters, { keyword: '', category: '', status: 'ACTIVE' })
-  loadVenues()
+async function navigateToPage(page) {
+  const target = router.resolve({ name: 'venues', query: filtersToQuery(page) })
+  if (target.fullPath === route.fullPath) {
+    await loadVenues()
+    return
+  }
+  await router.push(target)
 }
 
-onMounted(loadVenues)
+async function applyFilters() {
+  await navigateToPage(1)
+}
+
+async function reset() {
+  Object.assign(filters, { keyword: '', category: '', status: 'ACTIVE' })
+  await applyFilters()
+}
+
+async function changePage(page) {
+  await navigateToPage(page)
+}
+
+watch(
+  () => route.fullPath,
+  async () => {
+    restoreFiltersFromRoute()
+    await loadVenues()
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -43,10 +108,10 @@ onMounted(loadVenues)
         <h1>找到下一站</h1>
         <p>浏览可预约、可现场排队的本地模拟场所。</p>
       </div>
-      <span v-if="!loading" class="result-count data-value">{{ venues.length }} 个地点</span>
+      <span v-if="!loading" class="result-count data-value">{{ total }} 个地点</span>
     </header>
 
-    <form class="filters surface" aria-label="筛选地点" @submit.prevent="loadVenues">
+    <form class="filters surface" aria-label="筛选地点" @submit.prevent="applyFilters">
       <div class="filter-field filter-field--grow">
         <label class="field-label" for="venue-keyword">搜索地点</label>
         <el-input id="venue-keyword" v-model="filters.keyword" clearable placeholder="名称、地址或介绍" :prefix-icon="Search" />
@@ -74,14 +139,34 @@ onMounted(loadVenues)
       <el-button type="primary" @click="reset">清除筛选</el-button>
     </StatePanel>
     <section v-else class="venue-grid" aria-label="地点列表">
-      <VenueCard v-for="venue in venues" :key="venue.id" :venue="venue" />
+      <VenueCard v-for="venue in venues" :key="venue.id" :venue="venue" :link-query="route.query" />
     </section>
+    <nav v-if="!loading && !error && total > PAGE_SIZE" class="pagination" aria-label="地点列表分页">
+      <el-pagination
+        background
+        layout="prev, pager, next"
+        :current-page="currentPage"
+        :page-size="PAGE_SIZE"
+        :pager-count="5"
+        :total="total"
+        @current-change="changePage"
+      />
+    </nav>
   </div>
 </template>
 
 <style scoped>
 .result-count { color: var(--qm-ink-500); font-size: 14px; }
 .venue-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.pagination { display: flex; justify-content: center; padding-top: 8px; }
+.pagination :deep(.btn-prev),
+.pagination :deep(.btn-next),
+.pagination :deep(.el-pager li) { min-width: 44px; height: 44px; }
 @media (max-width: 1023px) { .venue-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 680px) { .venue-grid { grid-template-columns: 1fr; } }
+@media (max-width: 680px) {
+  .venue-grid { grid-template-columns: 1fr; }
+  .pagination :deep(.btn-prev),
+  .pagination :deep(.btn-next),
+  .pagination :deep(.el-pager li) { margin: 0 2px; }
+}
 </style>
