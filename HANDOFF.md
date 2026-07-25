@@ -1,6 +1,6 @@
 # QueueMate 项目交接文档
 
-> 最后更新：2026-07-21
+> 最后更新：2026-07-25
 > 当前分支：`main`  
 > 当前功能代码基线：`484d984 feat: expand venue categories`
 > 认证初版基线提交：`2bc876e feat: add initial authentication module`  
@@ -138,6 +138,7 @@ PATCH /api/v1/venues/{id}/status
 - 地点列表和详情允许匿名访问。
 - 列表支持 `category`、`status`、`keyword` 筛选。
 - 地点分类共 7 类：`TEA_SHOP`、`STUDY_ROOM`、`BADMINTON_COURT`、`RESTAURANT`、`HOTEL`、`MAKEUP_STUDIO`、`SHOPPING_MALL`，前端分别显示为奶茶店、自习室、羽毛球场、饭店、酒店、妆造店和商场。
+- 本地演示数据共 82 个地点；在原有 12 个地点基础上，7 个分类各新增 10 家名称、简介、地址、价格和服务开关完整的演示店铺。全新数据库由 `sql/data.sql` 初始化，已有数据库执行 `sql/migrations/20260725_add_category_demo_venues.sql` 增量补充。
 - `MERCHANT/ADMIN` 可创建地点，`USER` 返回统一 `403/AUTH_FORBIDDEN`。
 - 商家创建地点时归属强制绑定当前登录商家；请求中的其他 `merchantId` 不生效。
 - 管理员创建地点时必须指定可用的 `MERCHANT`，否则返回 `400/MERCHANT_INVALID`。
