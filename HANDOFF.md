@@ -1,8 +1,8 @@
 # QueueMate 项目交接文档
 
-> 最后更新：2026-07-25
+> 最后更新：2026-07-27
 > 当前分支：`main`  
-> 当前功能代码基线：`484d984 feat: expand venue categories`
+> 当前功能代码基线：`6709727 test: add repeatable Postman regression`
 > 认证初版基线提交：`2bc876e feat: add initial authentication module`  
 > GitHub：`git@github.com:Xixi051108/QueueMate.git`
 
@@ -246,7 +246,7 @@ cd D:\QueueMate\backend\queuemate-server
 最后验证结果：
 
 ```text
-Tests run: 140, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 144, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 
@@ -273,6 +273,7 @@ BUILD SUCCESS
 - `BusyHoursServiceTest`：3 个
 - `BusyHoursControllerSecurityTest`：4 个
 - `MerchantApplicationServiceTest`：6 个
+- `PostmanTestDataCleanupControllerSecurityTest`：4 个
 
 真实 HTTP + MySQL 回归已验证：
 
@@ -336,11 +337,14 @@ Postman 资产：
 
 - `tests/postman/QueueMate.postman_collection.json`
 - `tests/postman/QueueMate.local.postman_environment.json`
-- 当前共 44 个请求，JSON 可正常解析。
+- 当前共 45 个请求，JSON 可正常解析；最后一个请求按本轮 `runId` 自动清理动态数据。
 - 已加入地点公开查询、USER 禁止创建、商家创建/更新/停用和不存在地点断言。
 - 已加入时段公开查询、USER 禁止创建、商家创建、重复时段和关闭时段断言。
 - 已加入钱包、预约、退款、消费码、排队状态机、管理员余额调整和繁忙统计断言。
-- 尚未使用 Postman Runner 或 Newman 正式执行，所以不能把 Newman 标记为已通过。
+- 已使用 Newman 6.2.2 对真实 Spring Boot + MySQL 正式执行：45 个请求、99 个断言、0 失败，平均响应时间 39ms。
+- 收尾清理删除 1 个动态用户、1 个测试地点、3 个测试时段、3 条预约、1 张消费凭证、1 个排队号、3 条用户流水和 2 条管理员调整流水，`remainingArtifacts=0`。
+- Newman 命令入口位于 `tests/postman/package.json`，使用 `pnpm test` 或 `pnpm test:report`；JSON 报告为忽略的运行产物。
+- 全量回归必须使用 VS Code 的 `QueueMate Server (E2E - Postman cleanup enabled)` 启动项；普通启动不注册清理端点。
 
 ### 3.9 Vue3 全角色前端与设计系统
 
@@ -442,7 +446,7 @@ SQL 文件和本地数据库保存的是 BCrypt 哈希。以上明文仅为公�
 - 密码策略目前只有 8 到 64 字符的长度限制，不代表生产级密码安全。
 - JWT 只有 Access Token，没有 Refresh Token、主动登出、黑名单和密钥轮换。
 - 登录尚无限流、失败次数锁定、审计日志和验证码。
-- Postman 尚未通过 Newman 执行。
+- Newman 全量接口回归已通过；尚未接入 GitHub Actions。
 - 管理员取消预约仍需手动输入预约 ID，因为后端没有全局预约列表接口。
 - 已完成商家申请、管理员审核和商家创建地点的人工浏览器写流程；预约、充值、叫号、核销和余额调整仍需正式 Playwright 用例覆盖并自动清理测试数据。
 - 时段首版只禁止完全相同的时间范围，没有禁止重叠时段。
@@ -457,7 +461,7 @@ SQL 文件和本地数据库保存的是 BCrypt 哈希。以上明文仅为公�
 
 1. 将多角色浏览器检查转为正式 Playwright 用例，并加入测试数据创建与清理。
 2. 使用真实 Spring Boot + MySQL 回归注册、付费预约、取消退款、充值、用户取号、商家叫号与核销。
-3. 接入 Postman/Newman 和 JMeter 正式执行结果。
+3. 在已完成 Postman/Newman 正式执行的基础上补充 JMeter 正式结果。
 4. 建立 GitHub Actions 后端、前端、接口和 UI 测试流水线。
 
 ```text
@@ -560,4 +564,4 @@ cd D:\QueueMate\frontend\queuemate-web
 pnpm build
 ```
 
-最后检查前后端健康状态。当前基线应看到后端 140 个测试全部通过、Vite 生产构建成功；认证、商家入驻、地点、时段、预约、钱包、消费码、排队和统计接口均可用，普通用户、商家和管理员前端页面均可访问，并且项目中不存在 `password-strength`、`PasswordPolicy` 或 `PASSWORD_WEAK`。
+最后检查前后端健康状态。当前基线应看到后端 144 个测试全部通过、Newman 45 个请求与 99 个断言全部通过且 `remainingArtifacts=0`、Vite 生产构建成功；认证、商家入驻、地点、时段、预约、钱包、消费码、排队和统计接口均可用，普通用户、商家和管理员前端页面均可访问，并且项目中不存在 `password-strength`、`PasswordPolicy` 或 `PASSWORD_WEAK`。
