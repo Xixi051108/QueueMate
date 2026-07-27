@@ -49,7 +49,7 @@ flowchart TD
 ## 4. 测试生态
 
 - Postman：维护接口集合，覆盖登录、地点、预约、取号、统计等 API
-- Newman：把 Postman 集合放进命令行和 CI 中执行
+- Newman：已通过项目脚本执行 45 请求、99 断言的真实 MySQL 接口回归，并在最后自动清理本轮测试数据
 - JMeter：验证预约并发防超卖和余额并发扣款，例如 100 并发抢 20 个名额
 - Playwright：覆盖用户登录、地点浏览、模拟充值、预约取消、商家叫号等 UI 主流程
 - 后端测试：覆盖 Service 规则、Mapper 数据访问、事务和状态流转
@@ -60,7 +60,7 @@ flowchart TD
 
 - GitHub Actions 自动执行后端构建与测试
 - GitHub Actions 自动执行前端构建
-- 后续接入 Newman 执行接口回归
+- 后续把已验证的 Newman 命令接入 GitHub Actions 接口回归
 - 后续接入 Playwright 执行 UI 回归
 - JMeter 先作为手动压测资产维护，再扩展为手动触发 workflow
 
@@ -99,7 +99,7 @@ flowchart TD
 
 - 第一阶段：完成后端核心 API、模拟余额支付和 MySQL 初始化数据
 - 第二阶段：完成 Vue3 前端主流程
-- 第三阶段：补齐 Postman 接口集合和 Newman 执行脚本
+- 第三阶段：已补齐 Postman 接口集合、Newman 执行脚本和按运行标记自动清理
 - 第四阶段：补齐 JMeter 并发预约脚本
 - 第五阶段：补齐 Playwright UI 自动化
 - 第六阶段：接入 GitHub Actions 并沉淀测试报告

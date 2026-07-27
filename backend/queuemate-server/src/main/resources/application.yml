@@ -24,3 +24,5 @@ queuemate:
     issuer: ${JWT_ISSUER:QueueMate}
     expire-seconds: ${JWT_EXPIRE_SECONDS:7200}
     secret: ${JWT_SECRET:change-me-to-a-long-random-secret-at-least-32-bytes}
+  test-support:
+    enabled: ${TEST_SUPPORT_ENABLED:false}

@@ -66,6 +66,9 @@ QueueMate 的测试目标不是验证简单页面展示，而是围绕业务规�
 - 环境变量管理
 - 登录后 token 传递
 - 正常流程与异常流程断言
+- 每次全量运行生成唯一 `runId`，动态用户、地点和管理员调整流水均携带本轮标记
+- 集合最后通过仅在 E2E 环境启用的管理员清理端点，按外键顺序删除本轮用户、流水、预约、消费码、时段、地点和排队数据
+- Runner 必须关闭 `Stop run if an error occurs`，确保前序断言失败时仍执行收尾清理
 - Newman 预留，后续接入 CI
 
 ### 3.3 JMeter 性能测试
@@ -131,6 +134,14 @@ QueueMate 的测试目标不是验证简单页面展示，而是围绕业务规�
 - 每个启用预约的地点配置若干未来时段
 - 准备免费时段和收费时段
 - 部分地点支持现场取号
+
+Postman 全量回归的动态数据不得长期留在开发库。清理端点只有同时满足以下条件才会注册：
+
+- Spring profile 为 `e2e`
+- `TEST_SUPPORT_ENABLED=true`
+- 请求携带有效 `ADMIN` JWT
+
+清理服务只接受 `qm_<runId>`、`Postman Venue <runId>`、当前运行返回的时段 ID，以及包含同一 `runId` 的管理员调整备注；任何不匹配的现存资源都会返回 `409/TEST_DATA_UNSAFE`，不会删除初始化数据。
 
 ## 5. 核心测试主题
 
@@ -296,6 +307,8 @@ QueueMate 的测试目标不是验证简单页面展示，而是围绕业务规�
 
 - `tests/postman/QueueMate.postman_collection.json`
 - `tests/postman/QueueMate.local.postman_environment.json`
+- `tests/postman/package.json` 提供 `pnpm test` 和 `pnpm test:report` Newman 命令
+- 集合当前包含 45 个请求，最后一个请求负责清理本轮写操作数据
 
 ### 7.2 JMeter
 
@@ -392,4 +405,17 @@ JMeter 建议：
 - 预约和排队小时聚合返回正确 `bookingCount`、`queueCount` 和 `heatScore`。
 - 本轮临时用户、号码、序列、余额流水、预约、消费码、时段和数据库账号已全部清理。
 
-Postman 已覆盖认证、地点、地点分页、预约时段、钱包、免费/付费预约、有效重复预约、取消后重新预约、退款、消费码、排队、管理员钱包和繁忙统计。当前共 44 个请求且 JSON 可解析；只有实际运行 Postman Runner 或 Newman 后才能标记接口集合通过。
+Postman 已覆盖认证、地点、地点分页、预约时段、钱包、免费/付费预约、有效重复预约、取消后重新预约、退款、消费码、排队、管理员钱包、繁忙统计和 E2E 测试数据清理。当前共 45 个请求且 JSON 可解析。
+
+2026-07-27 使用 Newman 6.2.2 对真实 Spring Boot + MySQL 执行结果：
+
+```text
+Iterations: 1, failed: 0
+Requests: 45, failed: 0
+Test scripts: 45, failed: 0
+Assertions: 99, failed: 0
+Average response time: 39 ms
+Run-scoped remaining artifacts: 0
+```
+
+清理响应确认删除 1 个动态用户、1 个测试地点、3 个测试时段、3 条预约、1 张消费凭证、1 个排队号、3 条用户钱包流水和 2 条管理员调整流水。

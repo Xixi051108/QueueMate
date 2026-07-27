@@ -30,8 +30,9 @@ QueueMate 是一个面向测开作品集的生活排队与预约平台项目。�
 - 已实现现场取号、本人号码、公开进度、叫号、完成和过号
 - 已通过每日序列表和唯一约束保证并发取号号码连续且不重复
 - 已实现预约与排队按小时聚合的地点繁忙统计
-- 已有 140 个后端自动化测试
-- 已提供覆盖全部后端模块的 44 请求 Postman 集合
+- 已有 144 个后端自动化测试
+- 已提供覆盖全部后端模块的 45 请求 Postman 集合，包含按运行标记清理测试数据的收尾请求
+- Newman 6.2.2 已完成真实 Spring Boot + MySQL 全量回归：45 个请求、99 个断言、0 失败，清理后本轮标记数据剩余 0
 - 已初始化 Vue3 + Vite + Element Plus + Axios 前端
 - 已实现注册、登录、地点浏览、预约、钱包、消费码、现场排队和历史记录页面
 - 已实现商家/管理员地点维护、时段管理、叫号、核销和繁忙统计工作台
@@ -160,6 +161,28 @@ QueueMate/
 |-- scripts/
 `-- sql/
 ```
+
+## Postman 本地全量回归
+
+Postman 全量集合会创建用户、钱包流水、地点、时段、预约、消费码和排队号码。运行前必须使用 VS Code 的 `Debug QueueMate Server (E2E)` 启动项；普通 `Debug QueueMate Server` 默认不注册测试清理端点。
+
+1. 导入 `tests/postman/QueueMate.postman_collection.json` 和 `tests/postman/QueueMate.local.postman_environment.json`。
+2. 选择 `QueueMate Local` 环境。
+3. 在 Runner 中选择全部请求，保持 1 次迭代，并取消 `Stop run if an error occurs`，保证发生断言失败时仍会执行最后的清理请求。
+4. 确认 `Test Support Teardown / Cleanup current Postman run` 位于运行序列最后且已勾选。
+5. 运行后检查断言汇总和清理响应；清理请求会删除本轮动态用户及其关联数据、测试地点、测试时段、排队号码和带运行标记的管理员调整流水。
+
+测试清理端点同时受 `e2e` profile、`TEST_SUPPORT_ENABLED=true` 和 `ADMIN` 鉴权三重限制，默认及普通本地启动均不可用。若运行被手工中止，可在服务恢复后保留当前变量，单独执行管理员登录和清理请求。
+
+命令行回归使用 Newman：
+
+```powershell
+cd D:\QueueMate\tests\postman
+pnpm install
+pnpm test:report
+```
+
+命令不会使用 `--bail`，以确保中间出现失败时仍能运行最后的清理请求。JSON 报告生成在 `tests/postman/newman-report.json`，该运行产物已加入 Git 忽略规则。
 
 ## 文档说明
 

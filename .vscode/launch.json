@@ -3,11 +3,25 @@
   "configurations": [
     {
       "type": "java",
-      "name": "Debug QueueMate Server",
+      "name": "QueueMate Server (Normal - no test cleanup)",
       "request": "launch",
       "mainClass": "com.queuemate.QueueMateApplication",
       "projectName": "queuemate-server",
       "cwd": "${workspaceFolder}/backend/queuemate-server",
+      "console": "internalConsole",
+      "env": {
+        "DB_PASSWORD": "${input:dbPassword}"
+      }
+    },
+    {
+      "type": "java",
+      "name": "QueueMate Server (E2E - Postman cleanup enabled)",
+      "request": "launch",
+      "mainClass": "com.queuemate.QueueMateApplication",
+      "projectName": "queuemate-server",
+      "cwd": "${workspaceFolder}/backend/queuemate-server",
+      "console": "internalConsole",
+      "vmArgs": "-Dspring.profiles.active=e2e -Dqueuemate.test-support.enabled=true",
       "env": {
         "DB_PASSWORD": "${input:dbPassword}"
       }

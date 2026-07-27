@@ -1,0 +1,16 @@
+{
+  "name": "queuemate-postman-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "QueueMate Postman/Newman functional regression suite",
+  "scripts": {
+    "test": "newman run QueueMate.postman_collection.json -e QueueMate.local.postman_environment.json --reporters cli --timeout-request 10000",
+    "test:report": "newman run QueueMate.postman_collection.json -e QueueMate.local.postman_environment.json --reporters cli,json --reporter-json-export newman-report.json --timeout-request 10000"
+  },
+  "devDependencies": {
+    "newman": "6.2.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

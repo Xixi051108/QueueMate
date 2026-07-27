@@ -105,11 +105,21 @@ GET http://localhost:8080/api/v1/health
 
 项目已配置 `.vscode/launch.json`：
 
-- `Debug QueueMate Server`
+- `QueueMate Server (Normal - no test cleanup)`：普通开发启动，测试清理端点不可用
+- `QueueMate Server (E2E - Postman cleanup enabled)`：Postman/Newman 全量回归专用，启用 `e2e` profile 和受保护的测试清理端点
 
 可在 VS Code 的 Run and Debug 面板直接启动后端。
 
-启动调试时同样会弹窗要求输入本机 MySQL 密码。
+启动调试时同样会弹窗要求输入本机 MySQL 密码。两项配置都使用内部调试控制台，避免把密码展开到集成终端命令行。
+
+E2E 启动项只应用以下 JVM 参数：
+
+```text
+-Dspring.profiles.active=e2e
+-Dqueuemate.test-support.enabled=true
+```
+
+完成 Postman/Newman 回归后应停止 E2E 实例；日常开发使用普通启动项。
 
 ## 7. 前端启动
 

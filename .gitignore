@@ -9,6 +9,7 @@ dist/
 # Logs
 *.log
 logs/
+tests/postman/newman-report.json
 
 # IDE
 .idea/
