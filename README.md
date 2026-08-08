@@ -2,7 +2,7 @@
 
 QueueMate 是一个面向测开作品集的生活排队与预约平台项目。它用奶茶店、自习室、羽毛球场等模拟生活场景，练习 Spring Boot + Vue3 + MySQL 的完整开发流程，并重点展示接口测试、权限测试、并发测试、Web UI 自动化测试和 GitHub Actions CI 能力。
 
-当前已完成项目初始化、设计文档、MySQL 初始化、需求范围内的全部后端功能，以及 Vue3 访客、用户、商家和管理员前端业务闭环。后续继续补齐正式测试工具链和 CI。
+当前已完成项目初始化、设计文档、MySQL 初始化、需求范围内的全部后端功能、Vue3 全角色前端业务闭环，以及首条可重复执行的 Playwright 付费预约退款链路。后续继续扩充测试覆盖并接入 CI。
 
 ## 当前进度
 
@@ -33,6 +33,7 @@ QueueMate 是一个面向测开作品集的生活排队与预约平台项目。�
 - 已有 144 个后端自动化测试
 - 已提供覆盖全部后端模块的 45 请求 Postman 集合，包含按运行标记清理测试数据的收尾请求
 - Newman 6.2.2 已完成真实 Spring Boot + MySQL 全量回归：45 个请求、99 个断言、0 失败，清理后本轮标记数据剩余 0
+- Playwright 已完成真实浏览器首条收费链路回归：注册、充值、付费预约、取消退款和消费凭证作废，测试后 `remainingArtifacts=0`
 - 已初始化 Vue3 + Vite + Element Plus + Axios 前端
 - 已实现注册、登录、地点浏览、预约、钱包、消费码、现场排队和历史记录页面
 - 已实现商家/管理员地点维护、时段管理、叫号、核销和繁忙统计工作台
@@ -164,7 +165,7 @@ QueueMate/
 
 ## Postman 本地全量回归
 
-Postman 全量集合会创建用户、钱包流水、地点、时段、预约、消费码和排队号码。运行前必须使用 VS Code 的 `Debug QueueMate Server (E2E)` 启动项；普通 `Debug QueueMate Server` 默认不注册测试清理端点。
+Postman 全量集合会创建用户、钱包流水、地点、时段、预约、消费码和排队号码。运行前必须使用 VS Code 的 `QueueMate Server (E2E - Postman cleanup enabled)` 启动项；普通启动默认不注册测试清理端点。
 
 1. 导入 `tests/postman/QueueMate.postman_collection.json` 和 `tests/postman/QueueMate.local.postman_environment.json`。
 2. 选择 `QueueMate Local` 环境。
@@ -183,6 +184,19 @@ pnpm test:report
 ```
 
 命令不会使用 `--bail`，以确保中间出现失败时仍能运行最后的清理请求。JSON 报告生成在 `tests/postman/newman-report.json`，该运行产物已加入 Git 忽略规则。
+
+## Playwright 本地端到端回归
+
+Playwright 同样要求后端使用 E2E 启动项。测试会通过 API 创建独立地点和未来收费时段，通过真实浏览器完成注册、充值、预约、取消和退款断言，并在 `finally` 中调用受保护的清理端点。
+
+```powershell
+cd D:\QueueMate\tests\playwright
+pnpm install
+pnpm exec playwright install chromium
+pnpm test
+```
+
+当前首条用例位于 `tests/playwright/specs/paid-booking-refund.spec.js`。通过标准包括浏览器业务断言全部成功，以及清理响应 `remainingArtifacts=0`；HTML 报告、截图、视频和 trace 均为忽略的本地运行产物。
 
 ## 文档说明
 
@@ -244,6 +258,6 @@ pnpm test:report
 
 ## 后续实现建议
 
-- 需求范围内后端和 Vue3 全角色前端已经完成，下一步进入正式自动化与端到端写操作回归
-- 补充 Newman、JMeter 和 Playwright 的正式执行结果
+- 需求范围内后端、Vue3 全角色前端和首条 Playwright 付费预约退款链路已经完成
+- 继续补充 Playwright 取号、叫号、核销和管理员流程，并执行 JMeter 正式回归
 - 建立 GitHub Actions 后端、前端、接口和 UI 测试流水线

@@ -10,6 +10,9 @@ dist/
 *.log
 logs/
 tests/postman/newman-report.json
+tests/playwright/test-results/
+tests/playwright/playwright-report/
+tests/playwright/blob-report/
 
 # IDE
 .idea/

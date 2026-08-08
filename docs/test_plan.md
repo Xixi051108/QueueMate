@@ -96,11 +96,10 @@ QueueMate 的测试目标不是验证简单页面展示，而是围绕业务规�
 
 首版重点：
 
-- 用户注册/登录
-- 模拟充值和查看钱包流水
-- 浏览地点与预约
-- 查看我的预约并取消
+- 已实现：用户注册/登录、模拟充值、收费预约、取消退款、钱包流水和消费凭证作废
+- 已实现：每轮创建独立地点与未来时段，并通过受保护端点清理用户及全部关联数据
 - 商家登录并处理排队号码
+- 商家核销收费预约消费码
 
 ### 3.5 GitHub Actions CI
 
@@ -318,10 +317,10 @@ Postman 全量回归的动态数据不得长期留在开发库。清理端点只
 
 ### 7.3 Playwright
 
-- `tests/playwright/specs/auth.spec.ts`
-- `tests/playwright/specs/booking.spec.ts`
-- `tests/playwright/specs/wallet.spec.ts`
-- `tests/playwright/specs/merchant-queue.spec.ts`
+- `tests/playwright/playwright.config.js`：Chromium、失败 trace/截图/视频和 HTML 报告配置
+- `tests/playwright/support/api-fixture.js`：运行标记、商家数据准备、管理员安全清理和残留断言
+- `tests/playwright/specs/paid-booking-refund.spec.js`：注册、充值、付费预约、取消退款和消费凭证作废主链路
+- `tests/playwright/package.json`：提供 `pnpm test`、`pnpm test:headed`、`pnpm test:ui` 和 `pnpm report`
 - `scripts/qa-merchant-onboarding.mjs`：可对本地前端执行申请表单、待审核状态、管理员审核卡片和 375px 横向溢出冒烟；通过 `QM_QA_BASE_URL`、`QM_PLAYWRIGHT_PATH`、`QM_QA_BROWSER` 指定运行环境。
 
 ## 8. CI 规划
@@ -419,3 +418,14 @@ Run-scoped remaining artifacts: 0
 ```
 
 清理响应确认删除 1 个动态用户、1 个测试地点、3 个测试时段、3 条预约、1 张消费凭证、1 个排队号、3 条用户钱包流水和 2 条管理员调整流水。
+
+2026-08-08 使用 Playwright 1.54.1 + Chromium 对真实 Vue3 + Spring Boot + MySQL 执行首条收费链路：
+
+```text
+Tests: 1 passed, 0 failed
+Duration: 5.9 s
+Flow: register -> recharge -> paid booking -> cancel -> refund
+Run-scoped remaining artifacts: 0
+```
+
+清理响应确认删除本轮动态用户、测试地点、测试时段、预约、消费凭证和 3 条钱包流水。测试过程中余额按 `0 -> 50 -> 30 -> 50` 变化，预约最终为 `CANCELLED/REFUNDED`，消费凭证最终为 `VOID`。
