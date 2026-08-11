@@ -7,7 +7,7 @@ import java.util.List;
 
 public record PostmanCleanupRequest(
         @NotBlank
-        @Pattern(regexp = "[a-z0-9]{8,32}")
+        @Pattern(regexp = "[a-z0-9_]{8,32}")
         String runId,
         @Pattern(regexp = "^$|^[0-9]{1,19}$")
         String venueId,

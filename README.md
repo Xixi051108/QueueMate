@@ -33,6 +33,7 @@ QueueMate 是一个面向测开作品集的生活排队与预约平台项目。�
 - 已有 144 个后端自动化测试
 - 已提供覆盖全部后端模块的 45 请求 Postman 集合，包含按运行标记清理测试数据的收尾请求
 - Newman 6.2.2 已完成真实 Spring Boot + MySQL 全量回归：45 个请求、99 个断言、0 失败，清理后本轮标记数据剩余 0
+- JMeter 5.6.3 已完成 12 用户并发预约正式回归：容量 3 的时段得到 3 个成功和 9 个 `BOOKING_SLOT_FULL`，预约请求平均 191.1ms、P90 209ms、最大 215ms，56 个总采样 0 错误且清理后剩余 0
 - Playwright 已完成 6 条真实浏览器回归：管理员余额调整、商家入驻审核、付费预约取消退款、商家核销消费码，以及用户取号后商家叫号并完成/过号；每轮测试后 `remainingArtifacts=0`
 - 已初始化 Vue3 + Vite + Element Plus + Axios 前端
 - 已实现注册、登录、地点浏览、预约、钱包、消费码、现场排队和历史记录页面
@@ -185,6 +186,17 @@ pnpm test:report
 
 命令不会使用 `--bail`，以确保中间出现失败时仍能运行最后的清理请求。JSON 报告生成在 `tests/postman/newman-report.json`，该运行产物已加入 Git 忽略规则。
 
+## JMeter 并发预约回归
+
+JMeter 同样要求后端使用 E2E 启动项。测试计划会创建容量为 3 的独立免费时段和 12 个动态用户，通过同步定时器同时提交预约，断言只有 3 个成功、其余 9 个返回 `BOOKING_SLOT_FULL`，并校验时段已预约数为 3、剩余容量为 0。
+
+```powershell
+cd D:\QueueMate\tests\jmeter
+.\run.ps1
+```
+
+脚本会自动生成唯一运行标记、JTL 结果和 HTML 报告，并在 tearDown 线程组中删除 12 个用户、预约、测试时段和测试地点。任何采样器或清理断言失败都会使一键脚本返回失败。
+
 ## Playwright 本地端到端回归
 
 Playwright 同样要求后端使用 E2E 启动项。测试会通过 API 创建本轮独立地点和所需时段，通过真实浏览器完成管理员余额调整、商家入驻审核、注册、充值、预约退款、消费码核销，以及用户取号、商家叫号、完成/过号断言，并在 `finally` 中调用受保护的清理端点。
@@ -238,9 +250,9 @@ pnpm test
 
 ### Phase 4
 
-- 接入 Postman/Newman 接口测试
-- 接入 JMeter 并发预约性能测试
-- 接入 Playwright Web UI 自动化测试
+- 已接入 Postman/Newman 接口测试
+- 已接入 JMeter 并发预约性能测试
+- 已接入 Playwright Web UI 自动化测试
 
 ### Phase 5
 
@@ -259,5 +271,5 @@ pnpm test
 ## 后续实现建议
 
 - 需求范围内后端、Vue3 全角色前端和 6 条 Playwright 管理员/入驻/预约/核销/排队主链路已经完成
-- 执行 JMeter 正式回归并补充结果
+- Postman/Newman、JMeter 和 Playwright 正式回归均已完成并具备自动清理能力
 - 建立 GitHub Actions 后端、前端、接口和 UI 测试流水线

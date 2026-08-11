@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
+  <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="QueueMate Concurrent Booking" enabled="true">
+      <stringProp name="TestPlan.comments">12 users compete for a booking slot with capacity 3. Expected: 3 created, 9 full, no overselling.</stringProp>
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.tearDown_on_shutdown">true</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+        <collectionProp name="Arguments.arguments"/>
+      </elementProp>
+    </TestPlan>
+    <hashTree>
+      <ConfigTestElement guiclass="HttpDefaultsGui" testclass="ConfigTestElement" testname="HTTP Request Defaults" enabled="true">
+        <stringProp name="HTTPSampler.domain">${__P(host,127.0.0.1)}</stringProp>
+        <stringProp name="HTTPSampler.port">${__P(port,8080)}</stringProp>
+        <stringProp name="HTTPSampler.protocol">http</stringProp>
+        <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
+        <stringProp name="HTTPSampler.path"></stringProp>
+        <boolProp name="HTTPSampler.image_parser">false</boolProp>
+        <boolProp name="HTTPSampler.concurrentDwn">false</boolProp>
+      </ConfigTestElement>
+      <hashTree/>
+      <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="JSON Content Type" enabled="true">
+        <collectionProp name="HeaderManager.headers">
+          <elementProp name="" elementType="Header">
+            <stringProp name="Header.name">Content-Type</stringProp>
+            <stringProp name="Header.value">application/json</stringProp>
+          </elementProp>
+        </collectionProp>
+      </HeaderManager>
+      <hashTree/>
+
+      <SetupThreadGroup guiclass="SetupThreadGroupGui" testclass="SetupThreadGroup" testname="SETUP - Venue, slot and 12 users" enabled="true">
+        <stringProp name="ThreadGroup.on_sample_error">stoptestnow</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <stringProp name="LoopController.loops">1</stringProp>
+        </elementProp>
+        <stringProp name="ThreadGroup.num_threads">1</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">0</stringProp>
+        <boolProp name="ThreadGroup.scheduler">false</boolProp>
+        <stringProp name="ThreadGroup.duration"></stringProp>
+        <stringProp name="ThreadGroup.delay"></stringProp>
+      </SetupThreadGroup>
+      <hashTree>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Initialize run variables" enabled="true">
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="script">import java.time.LocalDate
+import java.util.concurrent.atomic.AtomicInteger
+
+def runId = props.get('runId') ?: 'jm' + System.currentTimeMillis()
+props.put('jmRunId', runId)
+props.put('bookingSuccessCount', new AtomicInteger(0))
+props.put('bookingFullCount', new AtomicInteger(0))
+vars.put('runId', runId)
+vars.put('slotDate', LocalDate.now().plusDays(2).toString())
+log.info('QueueMate JMeter runId={}', runId)</stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="SETUP - Merchant login" enabled="true">
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">{&quot;username&quot;:&quot;merchant_tea&quot;,&quot;password&quot;:&quot;Merchant123456&quot;}</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
+          <stringProp name="HTTPSampler.path">/api/v1/auth/login</stringProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="Extract merchant token" enabled="true">
+            <stringProp name="JSONPostProcessor.referenceNames">merchantToken</stringProp>
+            <stringProp name="JSONPostProcessor.jsonPathExprs">$.data.token</stringProp>
+            <stringProp name="JSONPostProcessor.match_numbers">1</stringProp>
+            <stringProp name="JSONPostProcessor.defaultValues">NOT_FOUND</stringProp>
+          </JSONPostProcessor>
+          <hashTree/>
+          <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Share merchant token" enabled="true">
+            <stringProp name="cacheKey">true</stringProp>
+            <stringProp name="scriptLanguage">groovy</stringProp>
+            <stringProp name="script">if (vars.get('merchantToken') == 'NOT_FOUND') throw new AssertionError('Merchant token missing')
+props.put('merchantToken', vars.get('merchantToken'))</stringProp>
+          </JSR223PostProcessor>
+          <hashTree/>
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Merchant login returns 200" enabled="true">
+            <collectionProp name="Asserion.test_strings"><stringProp name="49586">200</stringProp></collectionProp>
+            <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+            <boolProp name="Assertion.assume_success">false</boolProp>
+            <intProp name="Assertion.test_type">8</intProp>
+          </ResponseAssertion>
+          <hashTree/>
+        </hashTree>
+
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="SETUP - Create test venue" enabled="true">
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">{&quot;name&quot;:&quot;Postman Venue ${runId}&quot;,&quot;category&quot;:&quot;STUDY_ROOM&quot;,&quot;description&quot;:&quot;created by Postman&quot;,&quot;addressText&quot;:&quot;JMeter concurrent booking test&quot;,&quot;queueEnabled&quot;:false,&quot;bookingEnabled&quot;:true,&quot;defaultPrice&quot;:0}</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
+          <stringProp name="HTTPSampler.path">/api/v1/venues</stringProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="Merchant Authorization" enabled="true">
+            <collectionProp name="HeaderManager.headers">
+              <elementProp name="" elementType="Header"><stringProp name="Header.name">Authorization</stringProp><stringProp name="Header.value">Bearer ${merchantToken}</stringProp></elementProp>
+            </collectionProp>
+          </HeaderManager>
+          <hashTree/>
+          <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="Extract venue ID" enabled="true">
+            <stringProp name="JSONPostProcessor.referenceNames">venueId</stringProp>
+            <stringProp name="JSONPostProcessor.jsonPathExprs">$.data.id</stringProp>
+            <stringProp name="JSONPostProcessor.match_numbers">1</stringProp>
+            <stringProp name="JSONPostProcessor.defaultValues">NOT_FOUND</stringProp>
+          </JSONPostProcessor>
+          <hashTree/>
+          <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Share venue ID" enabled="true">
+            <stringProp name="cacheKey">true</stringProp><stringProp name="scriptLanguage">groovy</stringProp>
+            <stringProp name="script">if (vars.get('venueId') == 'NOT_FOUND') throw new AssertionError('Venue ID missing')
+props.put('venueId', vars.get('venueId'))</stringProp>
+          </JSR223PostProcessor>
+          <hashTree/>
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Venue creation returns 201" enabled="true">
+            <collectionProp name="Asserion.test_strings"><stringProp name="49587">201</stringProp></collectionProp>
+            <stringProp name="Assertion.test_field">Assertion.response_code</stringProp><intProp name="Assertion.test_type">8</intProp>
+          </ResponseAssertion>
+          <hashTree/>
+        </hashTree>
+
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="SETUP - Create capacity 3 slot" enabled="true">
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument"><boolProp name="HTTPArgument.always_encode">false</boolProp><stringProp name="Argument.value">{&quot;slotDate&quot;:&quot;${slotDate}&quot;,&quot;startTime&quot;:&quot;09:00:00&quot;,&quot;endTime&quot;:&quot;10:00:00&quot;,&quot;capacity&quot;:3,&quot;price&quot;:0}</stringProp><stringProp name="Argument.metadata">=</stringProp></elementProp>
+            </collectionProp>
+          </elementProp>
+          <stringProp name="HTTPSampler.path">/api/v1/venues/${venueId}/slots</stringProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp><boolProp name="HTTPSampler.follow_redirects">true</boolProp><boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="Merchant Authorization" enabled="true">
+            <collectionProp name="HeaderManager.headers"><elementProp name="" elementType="Header"><stringProp name="Header.name">Authorization</stringProp><stringProp name="Header.value">Bearer ${merchantToken}</stringProp></elementProp></collectionProp>
+          </HeaderManager><hashTree/>
+          <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="Extract slot ID" enabled="true">
+            <stringProp name="JSONPostProcessor.referenceNames">slotId</stringProp><stringProp name="JSONPostProcessor.jsonPathExprs">$.data.id</stringProp><stringProp name="JSONPostProcessor.match_numbers">1</stringProp><stringProp name="JSONPostProcessor.defaultValues">NOT_FOUND</stringProp>
+          </JSONPostProcessor><hashTree/>
+          <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Share slot ID and date" enabled="true">
+            <stringProp name="cacheKey">true</stringProp><stringProp name="scriptLanguage">groovy</stringProp><stringProp name="script">if (vars.get('slotId') == 'NOT_FOUND') throw new AssertionError('Slot ID missing')
+props.put('slotId', vars.get('slotId'))
+props.put('slotDate', vars.get('slotDate'))</stringProp>
+          </JSR223PostProcessor><hashTree/>
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Slot creation returns 201" enabled="true"><collectionProp name="Asserion.test_strings"><stringProp name="49587">201</stringProp></collectionProp><stringProp name="Assertion.test_field">Assertion.response_code</stringProp><intProp name="Assertion.test_type">8</intProp></ResponseAssertion><hashTree/>
+        </hashTree>
+
+        <LoopController guiclass="LoopControlPanel" testclass="LoopController" testname="Register 12 users" enabled="true">
+          <boolProp name="LoopController.continue_forever">false</boolProp><stringProp name="LoopController.loops">12</stringProp>
+        </LoopController>
+        <hashTree>
+          <CounterConfig guiclass="CounterConfigGui" testclass="CounterConfig" testname="User index" enabled="true">
+            <stringProp name="CounterConfig.start">1</stringProp><stringProp name="CounterConfig.end">12</stringProp><stringProp name="CounterConfig.incr">1</stringProp><stringProp name="CounterConfig.name">userIndex</stringProp><stringProp name="CounterConfig.format"></stringProp><boolProp name="CounterConfig.per_user">false</boolProp><boolProp name="CounterConfig.reset_on_tg_iteration">true</boolProp>
+          </CounterConfig><hashTree/>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="SETUP - Register user ${userIndex}" enabled="true">
+            <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments"><collectionProp name="Arguments.arguments"><elementProp name="" elementType="HTTPArgument"><boolProp name="HTTPArgument.always_encode">false</boolProp><stringProp name="Argument.value">{&quot;username&quot;:&quot;qm_${runId}_${userIndex}&quot;,&quot;password&quot;:&quot;User123456&quot;,&quot;displayName&quot;:&quot;Postman User&quot;,&quot;phone&quot;:&quot;13800007777&quot;}</stringProp><stringProp name="Argument.metadata">=</stringProp></elementProp></collectionProp></elementProp>
+            <stringProp name="HTTPSampler.path">/api/v1/auth/register</stringProp><stringProp name="HTTPSampler.method">POST</stringProp><boolProp name="HTTPSampler.follow_redirects">true</boolProp><boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          </HTTPSamplerProxy>
+          <hashTree>
+            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Registration returns 201" enabled="true"><collectionProp name="Asserion.test_strings"><stringProp name="49587">201</stringProp></collectionProp><stringProp name="Assertion.test_field">Assertion.response_code</stringProp><intProp name="Assertion.test_type">8</intProp></ResponseAssertion><hashTree/>
+          </hashTree>
+        </hashTree>
+      </hashTree>
+
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="LOAD - 12 concurrent bookings" enabled="true">
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true"><boolProp name="LoopController.continue_forever">false</boolProp><stringProp name="LoopController.loops">1</stringProp></elementProp>
+        <stringProp name="ThreadGroup.num_threads">12</stringProp><stringProp name="ThreadGroup.ramp_time">1</stringProp><boolProp name="ThreadGroup.scheduler">false</boolProp><stringProp name="ThreadGroup.duration"></stringProp><stringProp name="ThreadGroup.delay"></stringProp><boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+      </ThreadGroup>
+      <hashTree>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="LOAD - User login" enabled="true">
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp><elementProp name="HTTPsampler.Arguments" elementType="Arguments"><collectionProp name="Arguments.arguments"><elementProp name="" elementType="HTTPArgument"><boolProp name="HTTPArgument.always_encode">false</boolProp><stringProp name="Argument.value">{&quot;username&quot;:&quot;qm_${__P(jmRunId)}_${__threadNum}&quot;,&quot;password&quot;:&quot;User123456&quot;}</stringProp><stringProp name="Argument.metadata">=</stringProp></elementProp></collectionProp></elementProp>
+          <stringProp name="HTTPSampler.path">/api/v1/auth/login</stringProp><stringProp name="HTTPSampler.method">POST</stringProp><boolProp name="HTTPSampler.follow_redirects">true</boolProp><boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="Extract user token" enabled="true"><stringProp name="JSONPostProcessor.referenceNames">userToken</stringProp><stringProp name="JSONPostProcessor.jsonPathExprs">$.data.token</stringProp><stringProp name="JSONPostProcessor.match_numbers">1</stringProp><stringProp name="JSONPostProcessor.defaultValues">NOT_FOUND</stringProp></JSONPostProcessor><hashTree/>
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Login returns 200" enabled="true"><collectionProp name="Asserion.test_strings"><stringProp name="49586">200</stringProp></collectionProp><stringProp name="Assertion.test_field">Assertion.response_code</stringProp><intProp name="Assertion.test_type">8</intProp></ResponseAssertion><hashTree/>
+        </hashTree>
+        <SyncTimer guiclass="TestBeanGUI" testclass="SyncTimer" testname="Release all 12 users together" enabled="true"><intProp name="groupSize">12</intProp><longProp name="timeoutInMs">10000</longProp></SyncTimer><hashTree/>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="LOAD - Concurrent booking" enabled="true">
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp><elementProp name="HTTPsampler.Arguments" elementType="Arguments"><collectionProp name="Arguments.arguments"><elementProp name="" elementType="HTTPArgument"><boolProp name="HTTPArgument.always_encode">false</boolProp><stringProp name="Argument.value">{&quot;slotId&quot;:${__P(slotId)}}</stringProp><stringProp name="Argument.metadata">=</stringProp></elementProp></collectionProp></elementProp>
+          <stringProp name="HTTPSampler.path">/api/v1/bookings</stringProp><stringProp name="HTTPSampler.method">POST</stringProp><boolProp name="HTTPSampler.follow_redirects">true</boolProp><boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="User Authorization" enabled="true"><collectionProp name="HeaderManager.headers"><elementProp name="" elementType="Header"><stringProp name="Header.name">Authorization</stringProp><stringProp name="Header.value">Bearer ${userToken}</stringProp></elementProp></collectionProp></HeaderManager><hashTree/>
+          <JSR223Assertion guiclass="TestBeanGUI" testclass="JSR223Assertion" testname="Exactly success or slot full" enabled="true">
+            <stringProp name="cacheKey">true</stringProp><stringProp name="scriptLanguage">groovy</stringProp>
+            <stringProp name="script">import groovy.json.JsonSlurper
+
+def status = prev.getResponseCode()
+def body = new JsonSlurper().parseText(prev.getResponseDataAsString())
+if (status == '201' &amp;&amp; body.code == '0') {
+    props.get('bookingSuccessCount').incrementAndGet()
+    prev.setSuccessful(true)
+} else if (status == '409' &amp;&amp; body.code == 'BOOKING_SLOT_FULL') {
+    props.get('bookingFullCount').incrementAndGet()
+    prev.setSuccessful(true)
+} else {
+    AssertionResult.setFailure(true)
+    AssertionResult.setFailureMessage('Unexpected booking response: HTTP ' + status + ' body=' + prev.getResponseDataAsString())
+}
+if (prev.getTime() &gt; 2000) {
+    AssertionResult.setFailure(true)
+    AssertionResult.setFailureMessage('Booking response exceeded 2000 ms: ' + prev.getTime())
+}</stringProp>
+          </JSR223Assertion><hashTree/>
+        </hashTree>
+      </hashTree>
+
+      <PostThreadGroup guiclass="PostThreadGroupGui" testclass="PostThreadGroup" testname="TEARDOWN - Verify and clean" enabled="true">
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true"><boolProp name="LoopController.continue_forever">false</boolProp><stringProp name="LoopController.loops">1</stringProp></elementProp>
+        <stringProp name="ThreadGroup.num_threads">1</stringProp><stringProp name="ThreadGroup.ramp_time">0</stringProp><boolProp name="ThreadGroup.scheduler">false</boolProp><stringProp name="ThreadGroup.duration"></stringProp><stringProp name="ThreadGroup.delay"></stringProp>
+      </PostThreadGroup>
+      <hashTree>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="VERIFY - 3 success and 9 full" enabled="true">
+          <stringProp name="cacheKey">true</stringProp><stringProp name="scriptLanguage">groovy</stringProp><stringProp name="script">def success = props.get('bookingSuccessCount').get()
+def full = props.get('bookingFullCount').get()
+if (success != 3 || full != 9) throw new AssertionError('Expected 3 success and 9 full, got success=' + success + ', full=' + full)
+log.info('Concurrent booking result: success={}, full={}', success, full)</stringProp>
+        </JSR223Sampler><hashTree/>
+
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="VERIFY - Slot reserved count" enabled="true">
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments"><collectionProp name="Arguments.arguments"><elementProp name="dateFrom" elementType="HTTPArgument"><boolProp name="HTTPArgument.always_encode">true</boolProp><stringProp name="Argument.name">dateFrom</stringProp><stringProp name="Argument.value">${__P(slotDate)}</stringProp><stringProp name="Argument.metadata">=</stringProp></elementProp><elementProp name="dateTo" elementType="HTTPArgument"><boolProp name="HTTPArgument.always_encode">true</boolProp><stringProp name="Argument.name">dateTo</stringProp><stringProp name="Argument.value">${__P(slotDate)}</stringProp><stringProp name="Argument.metadata">=</stringProp></elementProp></collectionProp></elementProp>
+          <stringProp name="HTTPSampler.path">/api/v1/venues/${__P(venueId)}/slots</stringProp><stringProp name="HTTPSampler.method">GET</stringProp><boolProp name="HTTPSampler.follow_redirects">true</boolProp><boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <JSR223Assertion guiclass="TestBeanGUI" testclass="JSR223Assertion" testname="Reserved count is exactly 3" enabled="true"><stringProp name="cacheKey">true</stringProp><stringProp name="scriptLanguage">groovy</stringProp><stringProp name="script">import groovy.json.JsonSlurper
+def body = new JsonSlurper().parseText(prev.getResponseDataAsString())
+def slot = body.data.find { String.valueOf(it.id) == props.get('slotId') }
+if (prev.getResponseCode() != '200' || slot == null || slot.reservedCount != 3 || slot.availableCapacity != 0) {
+    AssertionResult.setFailure(true)
+    AssertionResult.setFailureMessage('Slot verification failed: ' + prev.getResponseDataAsString())
+}</stringProp></JSR223Assertion><hashTree/>
+        </hashTree>
+
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="TEARDOWN - Admin login" enabled="true">
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp><elementProp name="HTTPsampler.Arguments" elementType="Arguments"><collectionProp name="Arguments.arguments"><elementProp name="" elementType="HTTPArgument"><boolProp name="HTTPArgument.always_encode">false</boolProp><stringProp name="Argument.value">{&quot;username&quot;:&quot;admin&quot;,&quot;password&quot;:&quot;Admin123456&quot;}</stringProp><stringProp name="Argument.metadata">=</stringProp></elementProp></collectionProp></elementProp><stringProp name="HTTPSampler.path">/api/v1/auth/login</stringProp><stringProp name="HTTPSampler.method">POST</stringProp><boolProp name="HTTPSampler.follow_redirects">true</boolProp><boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="Extract admin token" enabled="true"><stringProp name="JSONPostProcessor.referenceNames">adminToken</stringProp><stringProp name="JSONPostProcessor.jsonPathExprs">$.data.token</stringProp><stringProp name="JSONPostProcessor.match_numbers">1</stringProp><stringProp name="JSONPostProcessor.defaultValues">NOT_FOUND</stringProp></JSONPostProcessor><hashTree/>
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Admin login returns 200" enabled="true"><collectionProp name="Asserion.test_strings"><stringProp name="49586">200</stringProp></collectionProp><stringProp name="Assertion.test_field">Assertion.response_code</stringProp><intProp name="Assertion.test_type">8</intProp></ResponseAssertion><hashTree/>
+        </hashTree>
+
+        <LoopController guiclass="LoopControlPanel" testclass="LoopController" testname="Clean 12 users" enabled="true"><boolProp name="LoopController.continue_forever">false</boolProp><stringProp name="LoopController.loops">12</stringProp></LoopController>
+        <hashTree>
+          <CounterConfig guiclass="CounterConfigGui" testclass="CounterConfig" testname="Cleanup user index" enabled="true"><stringProp name="CounterConfig.start">1</stringProp><stringProp name="CounterConfig.end">12</stringProp><stringProp name="CounterConfig.incr">1</stringProp><stringProp name="CounterConfig.name">cleanupIndex</stringProp><stringProp name="CounterConfig.format"></stringProp><boolProp name="CounterConfig.per_user">false</boolProp><boolProp name="CounterConfig.reset_on_tg_iteration">true</boolProp></CounterConfig><hashTree/>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="TEARDOWN - Clean user ${cleanupIndex}" enabled="true">
+            <boolProp name="HTTPSampler.postBodyRaw">true</boolProp><elementProp name="HTTPsampler.Arguments" elementType="Arguments"><collectionProp name="Arguments.arguments"><elementProp name="" elementType="HTTPArgument"><boolProp name="HTTPArgument.always_encode">false</boolProp><stringProp name="Argument.value">{&quot;runId&quot;:&quot;${__P(jmRunId)}_${cleanupIndex}&quot;,&quot;venueId&quot;:&quot;&quot;,&quot;slotIds&quot;:[]}</stringProp><stringProp name="Argument.metadata">=</stringProp></elementProp></collectionProp></elementProp><stringProp name="HTTPSampler.path">/api/v1/test-support/postman-runs/cleanup</stringProp><stringProp name="HTTPSampler.method">POST</stringProp><boolProp name="HTTPSampler.follow_redirects">true</boolProp><boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          </HTTPSamplerProxy>
+          <hashTree>
+            <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="Admin Authorization" enabled="true"><collectionProp name="HeaderManager.headers"><elementProp name="" elementType="Header"><stringProp name="Header.name">Authorization</stringProp><stringProp name="Header.value">Bearer ${adminToken}</stringProp></elementProp></collectionProp></HeaderManager><hashTree/>
+            <JSR223Assertion guiclass="TestBeanGUI" testclass="JSR223Assertion" testname="User cleanup leaves zero artifacts" enabled="true"><stringProp name="cacheKey">true</stringProp><stringProp name="scriptLanguage">groovy</stringProp><stringProp name="script">import groovy.json.JsonSlurper
+def body = new JsonSlurper().parseText(prev.getResponseDataAsString())
+if (prev.getResponseCode() != '200' || body.code != '0' || body.data.remainingArtifacts != 0) {
+    AssertionResult.setFailure(true)
+    AssertionResult.setFailureMessage('User cleanup failed: ' + prev.getResponseDataAsString())
+}</stringProp></JSR223Assertion><hashTree/>
+          </hashTree>
+        </hashTree>
+
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="TEARDOWN - Clean venue and slot" enabled="true">
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp><elementProp name="HTTPsampler.Arguments" elementType="Arguments"><collectionProp name="Arguments.arguments"><elementProp name="" elementType="HTTPArgument"><boolProp name="HTTPArgument.always_encode">false</boolProp><stringProp name="Argument.value">{&quot;runId&quot;:&quot;${__P(jmRunId)}&quot;,&quot;venueId&quot;:&quot;${__P(venueId)}&quot;,&quot;slotIds&quot;:[]}</stringProp><stringProp name="Argument.metadata">=</stringProp></elementProp></collectionProp></elementProp><stringProp name="HTTPSampler.path">/api/v1/test-support/postman-runs/cleanup</stringProp><stringProp name="HTTPSampler.method">POST</stringProp><boolProp name="HTTPSampler.follow_redirects">true</boolProp><boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="Admin Authorization" enabled="true"><collectionProp name="HeaderManager.headers"><elementProp name="" elementType="Header"><stringProp name="Header.name">Authorization</stringProp><stringProp name="Header.value">Bearer ${adminToken}</stringProp></elementProp></collectionProp></HeaderManager><hashTree/>
+          <JSR223Assertion guiclass="TestBeanGUI" testclass="JSR223Assertion" testname="Final cleanup leaves zero artifacts" enabled="true"><stringProp name="cacheKey">true</stringProp><stringProp name="scriptLanguage">groovy</stringProp><stringProp name="script">import groovy.json.JsonSlurper
+def body = new JsonSlurper().parseText(prev.getResponseDataAsString())
+if (prev.getResponseCode() != '200' || body.code != '0' || body.data.remainingArtifacts != 0) {
+    AssertionResult.setFailure(true)
+    AssertionResult.setFailureMessage('Final cleanup failed: ' + prev.getResponseDataAsString())
+}</stringProp></JSR223Assertion><hashTree/>
+        </hashTree>
+      </hashTree>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>

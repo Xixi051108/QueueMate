@@ -2,7 +2,7 @@
 
 > 最后更新：2026-08-11
 > 当前分支：`main`  
-> 上一阶段代码基线：`c9cd238 test: add merchant onboarding Playwright flow`
+> 上一阶段代码基线：`22733c7 test: add admin wallet adjustment Playwright flow`
 > 认证初版基线提交：`2bc876e feat: add initial authentication module`  
 > GitHub：`git@github.com:Xixi051108/QueueMate.git`
 
@@ -455,6 +455,17 @@ SQL 文件和本地数据库保存的是 BCrypt 哈希。以上明文仅为公�
 - 每条用例均在 `finally` 中清理动态用户、测试地点及其预约或排队关联数据，`remainingArtifacts=0`。
 - 运行时后端必须使用 `QueueMate Server (E2E - Postman cleanup enabled)`；普通模式不注册清理端点。
 
+### 3.13 JMeter 并发预约正式回归
+
+已建立 `tests/jmeter` 正式性能测试工程：
+
+- `concurrent-booking.jmx` 自动创建容量为 3 的免费时段和 12 个动态用户，通过同步定时器同时提交预约。
+- 业务断言要求精确得到 3 个 `201` 和 9 个 `409/BOOKING_SLOT_FULL`，并校验 `reservedCount=3`、`availableCapacity=0`。
+- `run.ps1` 生成带时间戳的 JTL 和 HTML 报告，并额外检查 JTL；即使 JMeter 进程返回 0，只要存在失败采样也会返回失败。
+- 2026-08-11 对真实 Spring Boot + MySQL 执行：预约平均 191.1ms、P90 209ms、P95 215ms、最大 215ms；全流程 56 个采样、0 错误。
+- tearDown 线程组逐一清理 12 个动态用户，再清理测试地点和时段，最终 `remainingArtifacts=0`。
+- 为支持每个并发用户的独立安全清理标记，`PostmanCleanupRequest.runId` 允许小写字母、数字和下划线，长度仍限制为 8 到 32；清理服务继续校验用户固定显示名和手机号。
+
 ## 4. 当前卡点与已知边界
 
 目前没有阻塞开发的故障，需求范围内的全部后端模块均可正常构建、启动和调用。
@@ -473,16 +484,15 @@ SQL 文件和本地数据库保存的是 BCrypt 哈希。以上明文仅为公�
 
 ## 5. 下一步计划
 
-下一模块建议继续扩展当前 Playwright 自动化资产。
+下一模块建议建立 GitHub Actions 持续集成。
 
 建议顺序：
 
-1. 在已完成 Postman/Newman 正式执行的基础上补充 JMeter 正式结果。
-2. 建立 GitHub Actions 后端、前端、接口和 UI 测试流水线。
+1. 建立 GitHub Actions 后端和前端构建流水线。
+2. 将 Newman、JMeter 和 Playwright 分层接入 CI。
 
 ```text
-Playwright 多角色端到端写操作
-  -> Newman/JMeter
+Newman / JMeter / Playwright 已完成本地正式回归
   -> GitHub Actions
 ```
 
@@ -580,4 +590,4 @@ cd D:\QueueMate\frontend\queuemate-web
 pnpm build
 ```
 
-最后检查前后端健康状态。当前基线应看到后端 144 个测试全部通过、Newman 45 个请求与 99 个断言全部通过且 `remainingArtifacts=0`、Playwright 管理员/入驻/预约/核销/排队 6 条用例全部通过且每轮 `remainingArtifacts=0`、Vite 生产构建成功；认证、商家入驻、地点、时段、预约、钱包、消费码、排队和统计接口均可用，普通用户、商家和管理员前端页面均可访问，并且项目中不存在 `password-strength`、`PasswordPolicy` 或 `PASSWORD_WEAK`。
+最后检查前后端健康状态。当前基线应看到后端 144 个测试全部通过、Newman 45 个请求与 99 个断言全部通过且 `remainingArtifacts=0`、JMeter 12 用户并发预约得到 3 成功和 9 个已满且 56 个采样 0 错误、Playwright 管理员/入驻/预约/核销/排队 6 条用例全部通过且每轮 `remainingArtifacts=0`、Vite 生产构建成功；认证、商家入驻、地点、时段、预约、钱包、消费码、排队和统计接口均可用，普通用户、商家和管理员前端页面均可访问，并且项目中不存在 `password-strength`、`PasswordPolicy` 或 `PASSWORD_WEAK`。

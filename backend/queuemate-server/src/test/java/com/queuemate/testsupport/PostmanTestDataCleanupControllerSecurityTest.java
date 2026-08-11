@@ -103,7 +103,7 @@ class PostmanTestDataCleanupControllerSecurityTest {
     }
 
     private String validRequest() {
-        return "{\"runId\":\"mabc1234\",\"venueId\":\"\",\"slotIds\":[]}";
+        return "{\"runId\":\"mabc_1234\",\"venueId\":\"\",\"slotIds\":[]}";
     }
 
     private UsernamePasswordAuthenticationToken authenticationFor(Long id, UserRole role) {
