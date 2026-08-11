@@ -37,6 +37,20 @@ export async function preparePaidBookingRun(request, runId, resources) {
   resources.slotId = slot.id
 }
 
+export async function prepareQueueRun(request, runId, resources) {
+  const merchant = await login(request, 'merchant_tea', 'Merchant123456')
+  const venue = await postData(request, '/venues', merchant.token, {
+    name: `Postman Venue ${runId}`,
+    category: 'TEA_SHOP',
+    description: 'created by Postman',
+    addressText: 'Playwright 排队自动化测试地点',
+    queueEnabled: true,
+    bookingEnabled: false,
+    defaultPrice: 0,
+  })
+  resources.venueId = venue.id
+}
+
 export async function verifyCleanupSupport(request, runId) {
   const admin = await login(request, 'admin', 'Admin123456')
   const cleanup = await postData(

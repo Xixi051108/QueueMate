@@ -318,8 +318,10 @@ Postman 全量回归的动态数据不得长期留在开发库。清理端点只
 ### 7.3 Playwright
 
 - `tests/playwright/playwright.config.js`：Chromium、失败 trace/截图/视频和 HTML 报告配置
-- `tests/playwright/support/api-fixture.js`：运行标记、商家数据准备、管理员安全清理和残留断言
+- `tests/playwright/support/api-fixture.js`：运行标记、预约/排队数据准备、管理员安全清理和残留断言
+- `tests/playwright/support/ui-actions.js`：普通用户注册登录和商家登录共享页面操作
 - `tests/playwright/specs/paid-booking-refund.spec.js`：注册、充值、付费预约、取消退款和消费凭证作废主链路
+- `tests/playwright/specs/queue-operator-flow.spec.js`：用户取号、商家叫号、完成服务和标记过号两条多角色链路
 - `tests/playwright/package.json`：提供 `pnpm test`、`pnpm test:headed`、`pnpm test:ui` 和 `pnpm report`
 - `scripts/qa-merchant-onboarding.mjs`：可对本地前端执行申请表单、待审核状态、管理员审核卡片和 375px 横向溢出冒烟；通过 `QM_QA_BASE_URL`、`QM_PLAYWRIGHT_PATH`、`QM_QA_BROWSER` 指定运行环境。
 
@@ -429,3 +431,17 @@ Run-scoped remaining artifacts: 0
 ```
 
 清理响应确认删除本轮动态用户、测试地点、测试时段、预约、消费凭证和 3 条钱包流水。测试过程中余额按 `0 -> 50 -> 30 -> 50` 变化，预约最终为 `CANCELLED/REFUNDED`，消费凭证最终为 `VOID`。
+
+2026-08-11 使用 Playwright 1.54.1 + Chromium 对真实 Vue3 + Spring Boot + MySQL 执行完整回归：
+
+```text
+Tests: 3 passed, 0 failed
+Duration: 15.3 s
+Flows:
+  register -> recharge -> paid booking -> cancel -> refund
+  take number -> merchant call -> complete
+  take number -> merchant call -> miss
+Run-scoped remaining artifacts: 0 for every test
+```
+
+排队用例使用相互隔离的用户与商家浏览器上下文，验证 `WAITING -> CALLED -> COMPLETED/MISSED` 状态同步。终态号码从商家当前处理列表消失，同时继续保留在用户历史记录中；每轮测试用户、地点、排队号码和每日序列均已清理。
