@@ -37,6 +37,31 @@ export async function preparePaidBookingRun(request, runId, resources) {
   resources.slotId = slot.id
 }
 
+export async function prepareVoucherRedeemRun(request, runId, resources) {
+  const merchant = await login(request, 'merchant_tea', 'Merchant123456')
+  const venue = await postData(request, '/venues', merchant.token, {
+    name: `Postman Venue ${runId}`,
+    category: 'STUDY_ROOM',
+    description: 'created by Postman',
+    addressText: 'Playwright 消费码核销测试地点',
+    queueEnabled: false,
+    bookingEnabled: true,
+    defaultPrice: 20,
+  })
+  resources.venueId = venue.id
+
+  const redeemableSlot = currentRedeemableSlot()
+  const slot = await postData(request, `/venues/${venue.id}/slots`, merchant.token, {
+    slotDate: redeemableSlot.slotDate,
+    startTime: redeemableSlot.startTime,
+    endTime: redeemableSlot.endTime,
+    capacity: 3,
+    price: 20,
+  })
+  resources.slotId = slot.id
+  resources.slotTimeLabel = redeemableSlot.slotTimeLabel
+}
+
 export async function prepareQueueRun(request, runId, resources) {
   const merchant = await login(request, 'merchant_tea', 'Merchant123456')
   const venue = await postData(request, '/venues', merchant.token, {
@@ -107,4 +132,45 @@ function localIsoDate(daysFromToday) {
   const month = String(value.getMonth() + 1).padStart(2, '0')
   const day = String(value.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
+}
+
+function currentRedeemableSlot() {
+  const now = new Date()
+  let slotDate = new Date(now)
+  let start = new Date(now.getTime() + 20 * 60_000)
+  let end = new Date(start.getTime() + 45 * 60_000)
+
+  if (now.getHours() === 23 && now.getMinutes() >= 30) {
+    slotDate.setDate(slotDate.getDate() + 1)
+    start = new Date(slotDate)
+    start.setHours(0, 0, 0, 0)
+    end = new Date(slotDate)
+    end.setHours(1, 0, 0, 0)
+  } else if (end.getDate() !== now.getDate()) {
+    end = new Date(now)
+    end.setHours(23, 59, 59, 0)
+  }
+
+  const startTime = localIsoTime(start)
+  const endTime = localIsoTime(end)
+  return {
+    slotDate: localIsoDateFromValue(slotDate),
+    startTime,
+    endTime,
+    slotTimeLabel: `${startTime.slice(0, 5)}–${endTime.slice(0, 5)}`,
+  }
+}
+
+function localIsoDateFromValue(value) {
+  const year = value.getFullYear()
+  const month = String(value.getMonth() + 1).padStart(2, '0')
+  const day = String(value.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function localIsoTime(value) {
+  const hour = String(value.getHours()).padStart(2, '0')
+  const minute = String(value.getMinutes()).padStart(2, '0')
+  const second = String(value.getSeconds()).padStart(2, '0')
+  return `${hour}:${minute}:${second}`
 }

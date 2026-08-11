@@ -2,7 +2,7 @@
 
 > 最后更新：2026-08-11
 > 当前分支：`main`  
-> 当前功能代码基线：`51a8687 test: add paid booking Playwright regression`
+> 上一阶段代码基线：`768c6d6 test: add queue operator Playwright flows`
 > 认证初版基线提交：`2bc876e feat: add initial authentication module`  
 > GitHub：`git@github.com:Xixi051108/QueueMate.git`
 
@@ -445,10 +445,11 @@ SQL 文件和本地数据库保存的是 BCrypt 哈希。以上明文仅为公�
 - `support/api-fixture.js` 使用唯一 `runId` 创建预约/排队独立地点和所需时段，并通过管理员清理端点删除本轮数据。
 - `support/ui-actions.js` 复用普通用户注册登录和商家登录页面操作。
 - `specs/paid-booking-refund.spec.js` 通过真实页面完成注册、登录、充值、付费预约、取消退款和消费凭证作废。
+- `specs/voucher-redeem.spec.js` 动态创建当前可核销时段，覆盖用户取得消费码、商家独立会话核销、预约完成、凭证已核销和重复核销被拒绝。
 - `specs/queue-operator-flow.spec.js` 使用独立用户与商家浏览器上下文，覆盖取号、叫号、完成服务和标记过号。
 - 测试断言余额按 `0 -> 50 -> 30 -> 50` 变化，预约最终为 `CANCELLED/REFUNDED`，消费凭证最终为 `VOID`。
 - 排队测试断言 `WAITING -> CALLED -> COMPLETED/MISSED` 在用户端和商家端正确同步；终态号码从商家当前处理列表消失并保留在用户历史中。
-- 2026-08-11 对真实 Vue3 + Spring Boot + MySQL 执行：3 条用例全部通过，耗时 15.3 秒。
+- 2026-08-11 对真实 Vue3 + Spring Boot + MySQL 执行：4 条用例全部通过，耗时 30.8 秒。
 - 每条用例均在 `finally` 中清理动态用户、测试地点及其预约或排队关联数据，`remainingArtifacts=0`。
 - 运行时后端必须使用 `QueueMate Server (E2E - Postman cleanup enabled)`；普通模式不注册清理端点。
 
@@ -463,7 +464,7 @@ SQL 文件和本地数据库保存的是 BCrypt 哈希。以上明文仅为公�
 - 登录尚无限流、失败次数锁定、审计日志和验证码。
 - Newman 全量接口回归已通过；尚未接入 GitHub Actions。
 - 管理员取消预约仍需手动输入预约 ID，因为后端没有全局预约列表接口。
-- 付费预约、充值、取消退款、用户取号、商家叫号和完成/过号已完成正式 Playwright 覆盖；核销、商家入驻和管理员余额调整仍需补充正式用例。
+- 付费预约、充值、取消退款、消费码核销、用户取号、商家叫号和完成/过号已完成正式 Playwright 覆盖；商家入驻和管理员余额调整仍需补充正式用例。
 - 时段首版只禁止完全相同的时间范围，没有禁止重叠时段。
 - 时段创建后暂不支持修改日期、时间、容量和价格，只支持打开或关闭。
 - 我的预约首版返回完整列表，尚未分页。
@@ -474,8 +475,8 @@ SQL 文件和本地数据库保存的是 BCrypt 哈希。以上明文仅为公�
 
 建议顺序：
 
-1. 增加商家核销 Playwright 用例。
-2. 增加商家入驻和管理员余额调整 Playwright 用例。
+1. 增加商家入驻 Playwright 用例。
+2. 增加管理员余额调整 Playwright 用例。
 3. 在已完成 Postman/Newman 正式执行的基础上补充 JMeter 正式结果。
 4. 建立 GitHub Actions 后端、前端、接口和 UI 测试流水线。
 
@@ -579,4 +580,4 @@ cd D:\QueueMate\frontend\queuemate-web
 pnpm build
 ```
 
-最后检查前后端健康状态。当前基线应看到后端 144 个测试全部通过、Newman 45 个请求与 99 个断言全部通过且 `remainingArtifacts=0`、Playwright 预约/排队 3 条用例全部通过且每轮 `remainingArtifacts=0`、Vite 生产构建成功；认证、商家入驻、地点、时段、预约、钱包、消费码、排队和统计接口均可用，普通用户、商家和管理员前端页面均可访问，并且项目中不存在 `password-strength`、`PasswordPolicy` 或 `PASSWORD_WEAK`。
+最后检查前后端健康状态。当前基线应看到后端 144 个测试全部通过、Newman 45 个请求与 99 个断言全部通过且 `remainingArtifacts=0`、Playwright 预约/核销/排队 4 条用例全部通过且每轮 `remainingArtifacts=0`、Vite 生产构建成功；认证、商家入驻、地点、时段、预约、钱包、消费码、排队和统计接口均可用，普通用户、商家和管理员前端页面均可访问，并且项目中不存在 `password-strength`、`PasswordPolicy` 或 `PASSWORD_WEAK`。
