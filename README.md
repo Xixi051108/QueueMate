@@ -2,7 +2,7 @@
 
 QueueMate 是一个面向测开作品集的生活排队与预约平台项目。它用奶茶店、自习室、羽毛球场等模拟生活场景，练习 Spring Boot + Vue3 + MySQL 的完整开发流程，并重点展示接口测试、权限测试、并发测试、Web UI 自动化测试和 GitHub Actions CI 能力。
 
-当前已完成项目初始化、设计文档、MySQL 初始化、需求范围内的全部后端功能、Vue3 全角色前端业务闭环，以及付费预约退款、消费码核销、排队完成和排队过号四条可重复执行的 Playwright 链路。后续继续扩充测试覆盖并接入 CI。
+当前已完成项目初始化、设计文档、MySQL 初始化、需求范围内的全部后端功能、Vue3 全角色前端业务闭环，以及商家入驻审核、付费预约退款、消费码核销、排队完成和排队过号五条可重复执行的 Playwright 链路。后续继续扩充测试覆盖并接入 CI。
 
 ## 当前进度
 
@@ -33,7 +33,7 @@ QueueMate 是一个面向测开作品集的生活排队与预约平台项目。�
 - 已有 144 个后端自动化测试
 - 已提供覆盖全部后端模块的 45 请求 Postman 集合，包含按运行标记清理测试数据的收尾请求
 - Newman 6.2.2 已完成真实 Spring Boot + MySQL 全量回归：45 个请求、99 个断言、0 失败，清理后本轮标记数据剩余 0
-- Playwright 已完成 4 条真实浏览器回归：付费预约取消退款、商家核销消费码，以及用户取号后商家叫号并完成/过号；每轮测试后 `remainingArtifacts=0`
+- Playwright 已完成 5 条真实浏览器回归：商家入驻审核、付费预约取消退款、商家核销消费码，以及用户取号后商家叫号并完成/过号；每轮测试后 `remainingArtifacts=0`
 - 已初始化 Vue3 + Vite + Element Plus + Axios 前端
 - 已实现注册、登录、地点浏览、预约、钱包、消费码、现场排队和历史记录页面
 - 已实现商家/管理员地点维护、时段管理、叫号、核销和繁忙统计工作台
@@ -187,7 +187,7 @@ pnpm test:report
 
 ## Playwright 本地端到端回归
 
-Playwright 同样要求后端使用 E2E 启动项。测试会通过 API 创建本轮独立地点和所需时段，通过真实浏览器完成注册、充值、预约退款、消费码核销，以及用户取号、商家叫号、完成/过号断言，并在 `finally` 中调用受保护的清理端点。
+Playwright 同样要求后端使用 E2E 启动项。测试会通过 API 创建本轮独立地点和所需时段，通过真实浏览器完成商家入驻审核、注册、充值、预约退款、消费码核销，以及用户取号、商家叫号、完成/过号断言，并在 `finally` 中调用受保护的清理端点。
 
 ```powershell
 cd D:\QueueMate\tests\playwright
@@ -196,7 +196,7 @@ pnpm exec playwright install chromium
 pnpm test
 ```
 
-当前用例位于 `tests/playwright/specs/paid-booking-refund.spec.js`、`tests/playwright/specs/voucher-redeem.spec.js` 和 `tests/playwright/specs/queue-operator-flow.spec.js`。通过标准包括浏览器业务断言全部成功，以及每轮清理响应 `remainingArtifacts=0`；HTML 报告、截图、视频和 trace 均为忽略的本地运行产物。
+当前用例位于 `tests/playwright/specs/merchant-onboarding.spec.js`、`tests/playwright/specs/paid-booking-refund.spec.js`、`tests/playwright/specs/voucher-redeem.spec.js` 和 `tests/playwright/specs/queue-operator-flow.spec.js`。通过标准包括浏览器业务断言全部成功，以及每轮清理响应 `remainingArtifacts=0`；HTML 报告、截图、视频和 trace 均为忽略的本地运行产物。
 
 ## 文档说明
 
@@ -258,6 +258,6 @@ pnpm test
 
 ## 后续实现建议
 
-- 需求范围内后端、Vue3 全角色前端和 4 条 Playwright 预约/核销/排队主链路已经完成
-- 继续补充 Playwright 商家入驻和管理员流程，并执行 JMeter 正式回归
+- 需求范围内后端、Vue3 全角色前端和 5 条 Playwright 入驻/预约/核销/排队主链路已经完成
+- 继续补充 Playwright 管理员流程，并执行 JMeter 正式回归
 - 建立 GitHub Actions 后端、前端、接口和 UI 测试流水线

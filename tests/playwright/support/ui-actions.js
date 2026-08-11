@@ -23,3 +23,11 @@ export async function loginAsMerchant(page) {
   await page.getByRole('button', { name: '登录并继续' }).click()
   await expect(page).toHaveURL(/\/manage\/venues/)
 }
+
+export async function loginAsAdmin(page) {
+  await page.goto('/login')
+  await page.getByLabel('用户名').fill('admin')
+  await page.getByLabel('密码').fill('Admin123456')
+  await page.getByRole('button', { name: '登录并继续' }).click()
+  await expect(page).toHaveURL(/\/manage\/venues/)
+}
