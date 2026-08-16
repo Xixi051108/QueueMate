@@ -227,6 +227,7 @@ pnpm test
 
 ## 文档说明
 
+- 项目学习总纲与教学方案：[knowledge/00-learning-roadmap-and-teaching-plan.md](knowledge/00-learning-roadmap-and-teaching-plan.md)
 - 需求说明：[docs/requirement.md](docs/requirement.md)
 - 数据库设计：[docs/db_design.md](docs/db_design.md)
 - 接口设计：[docs/api_design.md](docs/api_design.md)

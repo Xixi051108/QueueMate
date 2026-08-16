@@ -590,6 +590,8 @@ SQL 文件和本地数据库保存的是 BCrypt 哈希。以上明文仅为公�
 
 ## 7. 新会话接手检查清单
 
+如果新会话的目标是学习项目技术点、准备简历或模拟面试，应先完整阅读 `knowledge/00-learning-roadmap-and-teaching-plan.md`，按照其中“当前学习进度”和“老师必须遵守的教学协议”继续，不要从开发接手清单直接开始改代码。
+
 ```powershell
 cd D:\QueueMate
 git status --short
