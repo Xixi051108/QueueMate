@@ -10,7 +10,7 @@
 
 ## 非 GUI 正式执行
 
-推荐使用一键脚本。它会生成带时间戳的 JTL 和 HTML 报告，并在任何采样器失败时返回失败状态：
+推荐使用一键脚本。它会生成带时间戳的 JTL、JMeter 原始英文报告和 QueueMate 中文概览，并在任何采样器失败时返回失败状态：
 
 ```powershell
 cd D:\QueueMate\tests\jmeter
@@ -30,7 +30,13 @@ New-Item -ItemType Directory -Force results | Out-Null
   -o report
 ```
 
-一键脚本会在结束时输出具体报告路径。`results`、`report` 和 `jmeter.log` 都是忽略的本地运行产物。
+一键脚本会在结束时输出具体报告路径：
+
+- `report/<时间>/index-zh.html`：QueueMate 自制中文概览，日常查看优先使用。
+- `report/<时间>/index.html`：JMeter 原始英文报告，作为标准测试证据保留。
+- `results/concurrent-booking-<时间>.jtl`：原始采样数据。
+
+`results`、`report` 和 `jmeter.log` 都是忽略的本地运行产物。
 
 ## 可调参数
 

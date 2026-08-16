@@ -106,22 +106,22 @@ QueueMate 的测试目标不是验证简单页面展示，而是围绕业务规�
 目标：
 
 - 自动执行构建和基础测试
-- 为后续自动化测试接入预留位置
+- 自动执行关键接口、界面和并发回归
+- 在失败时保留可下载的测试证据
 
-首版规划：
+当前实现：
 
-- 后端构建与测试
-- 前端构建
-- Postman/Newman 预留
-- Playwright 预留
-- JMeter 手动触发或独立 workflow 预留
+- `.github/workflows/ci.yml` 在推送和拉取请求时执行后端 Maven 测试与前端 Vite 生产构建
+- `.github/workflows/full-regression.yml` 在 `main` 相关变更或手动触发时创建临时 MySQL 8 环境
+- 全量流水线按 Newman、Playwright、JMeter 的顺序执行，复用受保护清理端点并上传报告
+- JMeter 原始英文报告作为标准证据保留，同时生成面向项目使用者的中文概览
 
 ## 4. 测试环境与数据
 
 ### 4.1 测试环境
 
 - 本地开发环境
-- 后续可扩展为 GitHub Actions CI 环境
+- GitHub Actions Ubuntu Runner + MySQL 8 临时服务
 
 ### 4.2 测试数据建议
 
@@ -325,19 +325,28 @@ Postman 全量回归的动态数据不得长期留在开发库。清理端点只
 - `tests/playwright/package.json`：提供 `pnpm test`、`pnpm test:headed`、`pnpm test:ui` 和 `pnpm report`
 - `scripts/qa-merchant-onboarding.mjs`：可对本地前端执行申请表单、待审核状态、管理员审核卡片和 375px 横向溢出冒烟；通过 `QM_QA_BASE_URL`、`QM_PLAYWRIGHT_PATH`、`QM_QA_BROWSER` 指定运行环境。
 
-## 8. CI 规划
+## 8. CI 实现
 
-建议后续设置以下工作流：
+### 8.1 基础流水线
 
-- `backend-ci.yml`：Java 构建、单元测试、集成测试
-- `frontend-ci.yml`：前端安装、构建
-- `api-tests.yml`：Newman 执行 Postman 集合
-- `ui-tests.yml`：Playwright 自动化测试
+`.github/workflows/ci.yml` 在每次推送和拉取请求运行：
 
-JMeter 建议：
+- Java 21 + Maven 后端单元测试
+- Node.js 22 + pnpm 9 前端依赖安装与 Vite 生产构建
+- 后端 Surefire 报告和前端 `dist` 构建产物保留 14 天
 
-- 先作为手动测试资产维护
-- 后续再评估是否作为手动触发 workflow 接入
+### 8.2 全量回归流水线
+
+`.github/workflows/full-regression.yml` 在 `main` 的业务或测试资产变更时自动运行，也支持 `workflow_dispatch` 手动触发：
+
+- MySQL 8 服务使用 `sql/schema.sql` 和 `sql/data.sql` 初始化
+- 后端使用 `e2e` profile 和 `TEST_SUPPORT_ENABLED=true` 启动
+- Newman 执行 45 请求全量接口集合
+- Playwright 使用 Chromium 单 worker 执行 6 条真实浏览器链路
+- JMeter 5.6.3 执行 12 用户并发预约防超卖场景
+- Newman JSON、Playwright HTML/失败证据、JMeter JTL/中英文报告和后端日志统一保留 14 天
+
+工作流使用仅在临时 Runner 中生效的模拟配置，不读取或提交本机数据库密码。任何测试失败均使流水线失败，报告上传步骤使用 `if: always()` 保留定位证据。
 
 ## 9. 通过标准
 

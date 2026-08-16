@@ -2,7 +2,7 @@
 
 QueueMate 是一个面向测开作品集的生活排队与预约平台项目。它用奶茶店、自习室、羽毛球场等模拟生活场景，练习 Spring Boot + Vue3 + MySQL 的完整开发流程，并重点展示接口测试、权限测试、并发测试、Web UI 自动化测试和 GitHub Actions CI 能力。
 
-当前已完成项目初始化、设计文档、MySQL 初始化、需求范围内的全部后端功能、Vue3 全角色前端业务闭环，以及管理员余额调整、商家入驻审核、付费预约退款、消费码核销、排队完成和排队过号六条可重复执行的 Playwright 链路。后续继续扩充测试覆盖并接入 CI。
+当前已完成项目初始化、设计文档、MySQL 初始化、需求范围内的全部后端功能、Vue3 全角色前端业务闭环，以及管理员余额调整、商家入驻审核、付费预约退款、消费码核销、排队完成和排队过号六条可重复执行的 Playwright 链路。GitHub Actions 已分层接入后端、前端、Newman、Playwright 和 JMeter 自动化检查。
 
 ## 当前进度
 
@@ -35,6 +35,9 @@ QueueMate 是一个面向测开作品集的生活排队与预约平台项目。�
 - Newman 6.2.2 已完成真实 Spring Boot + MySQL 全量回归：45 个请求、99 个断言、0 失败，清理后本轮标记数据剩余 0
 - JMeter 5.6.3 已完成 12 用户并发预约正式回归：容量 3 的时段得到 3 个成功和 9 个 `BOOKING_SLOT_FULL`，预约请求平均 191.1ms、P90 209ms、最大 215ms，56 个总采样 0 错误且清理后剩余 0
 - Playwright 已完成 6 条真实浏览器回归：管理员余额调整、商家入驻审核、付费预约取消退款、商家核销消费码，以及用户取号后商家叫号并完成/过号；每轮测试后 `remainingArtifacts=0`
+- 已建立 GitHub Actions 基础流水线，每次推送和拉取请求自动执行后端测试、前端生产构建并保存报告或构建产物
+- 已建立 GitHub Actions 全量回归流水线，主分支相关变更或手动触发时自动初始化 MySQL，并依次执行 Newman、Playwright 和 JMeter
+- JMeter 一键脚本会同时保留原始英文报告并生成 QueueMate 中文测试概览
 - 已初始化 Vue3 + Vite + Element Plus + Axios 前端
 - 已实现注册、登录、地点浏览、预约、钱包、消费码、现场排队和历史记录页面
 - 已实现商家/管理员地点维护、时段管理、叫号、核销和繁忙统计工作台
@@ -195,7 +198,7 @@ cd D:\QueueMate\tests\jmeter
 .\run.ps1
 ```
 
-脚本会自动生成唯一运行标记、JTL 结果和 HTML 报告，并在 tearDown 线程组中删除 12 个用户、预约、测试时段和测试地点。任何采样器或清理断言失败都会使一键脚本返回失败。
+脚本会自动生成唯一运行标记、JTL 结果、JMeter 原始英文报告和 QueueMate 中文概览，并在 tearDown 线程组中删除 12 个用户、预约、测试时段和测试地点。日常优先查看 `report/<时间>/index-zh.html`，原始 `index.html` 继续作为标准测试证据。任何采样器或清理断言失败都会使一键脚本返回失败。
 
 ## Playwright 本地端到端回归
 
@@ -209,6 +212,15 @@ pnpm test
 ```
 
 当前用例位于 `tests/playwright/specs/admin-wallet-adjustment.spec.js`、`tests/playwright/specs/merchant-onboarding.spec.js`、`tests/playwright/specs/paid-booking-refund.spec.js`、`tests/playwright/specs/voucher-redeem.spec.js` 和 `tests/playwright/specs/queue-operator-flow.spec.js`。通过标准包括浏览器业务断言全部成功，以及每轮清理响应 `remainingArtifacts=0`；HTML 报告、截图、视频和 trace 均为忽略的本地运行产物。
+
+## GitHub Actions 持续集成
+
+仓库包含两层流水线：
+
+- `.github/workflows/ci.yml`：每次推送和拉取请求执行 Maven 单元测试、Vite 生产构建，并分别上传测试报告和前端构建产物。
+- `.github/workflows/full-regression.yml`：`main` 分支的后端、前端、测试、SQL 或工作流变更会自动触发，也可在 GitHub Actions 页面手动运行。流水线使用临时 MySQL 8 环境，启动受保护的 E2E 后端，依次执行 Newman、Playwright 和 JMeter，并上传完整报告。
+
+全量回归使用公开的本地模拟账号和仅在临时 Runner 内有效的数据库/JWT 配置，不依赖真实生产凭据。第三方原始报告保持原格式；GitHub 执行摘要和 JMeter 自制概览使用中文。
 
 ## 文档说明
 
@@ -256,8 +268,8 @@ pnpm test
 
 ### Phase 5
 
-- 接入 GitHub Actions 持续集成
-- 自动执行构建、基础测试和关键回归
+- 已接入 GitHub Actions 持续集成
+- 已自动执行后端测试、前端构建和 Newman、Playwright、JMeter 关键回归
 
 ## 测开亮点
 
@@ -270,6 +282,6 @@ pnpm test
 
 ## 后续实现建议
 
-- 需求范围内后端、Vue3 全角色前端和 6 条 Playwright 管理员/入驻/预约/核销/排队主链路已经完成
-- Postman/Newman、JMeter 和 Playwright 正式回归均已完成并具备自动清理能力
-- 建立 GitHub Actions 后端、前端、接口和 UI 测试流水线
+- 首次推送工作流后，在 GitHub Actions 页面确认 Ubuntu + MySQL 环境下的完整执行证据
+- 根据作品集展示需要，再评估管理员全局预约列表、时段重叠校验、时段编辑和“我的预约”分页等增强项
+- 若要继续研究性能，可增加 50、100、300 人阶梯并发，并同步采集应用和 MySQL 资源指标

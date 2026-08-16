@@ -1,0 +1,81 @@
+name: 基础构建与测试
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: basic-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: 后端单元测试
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend/queuemate-server
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 配置 Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: backend/queuemate-server/pom.xml
+
+      - name: 执行 Maven 测试
+        run: mvn --batch-mode --no-transfer-progress clean test
+
+      - name: 上传后端测试报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: 后端单元测试报告
+          path: backend/queuemate-server/target/surefire-reports/
+          if-no-files-found: warn
+          retention-days: 14
+
+  frontend:
+    name: 前端生产构建
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend/queuemate-web
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 配置 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: 配置 Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: frontend/queuemate-web/pnpm-lock.yaml
+
+      - name: 安装前端依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 执行 Vite 生产构建
+        run: pnpm build
+
+      - name: 上传前端构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: 前端生产构建产物
+          path: frontend/queuemate-web/dist/
+          if-no-files-found: error
+          retention-days: 14

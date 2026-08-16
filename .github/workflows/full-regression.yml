@@ -1,0 +1,175 @@
+name: 全量自动化回归
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'tests/**'
+      - 'sql/**'
+      - '.github/workflows/full-regression.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: full-regression-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  regression:
+    name: 接口、界面与并发回归
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: queuemate
+          MYSQL_ROOT_PASSWORD: queuemate_ci_password
+          TZ: Asia/Shanghai
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -pqueuemate_ci_password"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 配置 Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: backend/queuemate-server/pom.xml
+
+      - name: 配置 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: 配置 Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: |
+            frontend/queuemate-web/pnpm-lock.yaml
+            tests/postman/pnpm-lock.yaml
+            tests/playwright/pnpm-lock.yaml
+
+      - name: 初始化 MySQL 数据
+        env:
+          MYSQL_PWD: queuemate_ci_password
+        run: |
+          mysql --protocol=TCP -h 127.0.0.1 -u root < sql/schema.sql
+          mysql --protocol=TCP -h 127.0.0.1 -u root < sql/data.sql
+
+      - name: 构建后端
+        working-directory: backend/queuemate-server
+        run: mvn --batch-mode --no-transfer-progress -DskipTests package
+
+      - name: 启动 E2E 后端
+        working-directory: backend/queuemate-server
+        env:
+          DB_PASSWORD: queuemate_ci_password
+          JWT_SECRET: queuemate-ci-only-secret-at-least-32-bytes
+          SPRING_PROFILES_ACTIVE: e2e
+          TEST_SUPPORT_ENABLED: 'true'
+        run: |
+          nohup java -jar target/queuemate-server-0.0.1-SNAPSHOT.jar > "$RUNNER_TEMP/queuemate-backend.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/queuemate-backend.pid"
+
+      - name: 等待后端健康检查
+        run: |
+          for attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:8080/api/v1/health > /dev/null; then
+              echo "QueueMate 后端已就绪"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "QueueMate 后端未能在规定时间内启动"
+          cat "$RUNNER_TEMP/queuemate-backend.log"
+          exit 1
+
+      - name: 安装前端依赖
+        working-directory: frontend/queuemate-web
+        run: pnpm install --frozen-lockfile
+
+      - name: 安装 Newman 依赖
+        working-directory: tests/postman
+        run: pnpm install --frozen-lockfile
+
+      - name: 执行 Newman 接口回归
+        working-directory: tests/postman
+        run: pnpm test:report
+
+      - name: 安装 Playwright 依赖
+        working-directory: tests/playwright
+        run: pnpm install --frozen-lockfile
+
+      - name: 安装 Chromium
+        working-directory: tests/playwright
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: 执行 Playwright 界面回归
+        working-directory: tests/playwright
+        env:
+          CI: 'true'
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:5173
+          PLAYWRIGHT_API_BASE_URL: http://127.0.0.1:8080/api/v1
+        run: pnpm test
+
+      - name: 下载 JMeter 5.6.3
+        run: |
+          curl --fail --location --retry 3 \
+            --output "$RUNNER_TEMP/apache-jmeter-5.6.3.tgz" \
+            https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.3.tgz
+          tar -xzf "$RUNNER_TEMP/apache-jmeter-5.6.3.tgz" -C "$RUNNER_TEMP"
+          chmod +x "$RUNNER_TEMP/apache-jmeter-5.6.3/bin/jmeter"
+
+      - name: 执行 JMeter 并发预约回归
+        shell: pwsh
+        run: >-
+          ./tests/jmeter/run.ps1
+          -HostName 127.0.0.1
+          -Port 8080
+          -JMeterBat "${{ runner.temp }}/apache-jmeter-5.6.3/bin/jmeter"
+
+      - name: 写入中文执行摘要
+        if: success()
+        shell: bash
+        run: |
+          {
+            echo "## QueueMate 全量自动化回归"
+            echo ""
+            echo "- Newman 接口回归：通过"
+            echo "- Playwright 界面回归：通过"
+            echo "- JMeter 并发预约回归：通过"
+            echo "- 原始报告和中文 JMeter 概览已上传为工作流产物"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 上传全量回归报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: 全量自动化回归报告
+          path: |
+            tests/postman/newman-report.json
+            tests/playwright/playwright-report/
+            tests/playwright/test-results/
+            tests/jmeter/report/
+            tests/jmeter/results/
+            ${{ runner.temp }}/queuemate-backend.log
+          if-no-files-found: warn
+          retention-days: 14

@@ -12,7 +12,9 @@ $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $resultsDirectory = Join-Path $scriptRoot 'results'
 $resultFile = Join-Path $resultsDirectory "concurrent-booking-$timestamp.jtl"
 $logFile = Join-Path $resultsDirectory "jmeter-$timestamp.log"
-$reportDirectory = Join-Path $scriptRoot "report\$timestamp"
+$reportRoot = Join-Path $scriptRoot 'report'
+$reportDirectory = Join-Path $reportRoot $timestamp
+$summaryFile = Join-Path $reportDirectory 'index-zh.html'
 
 if (-not (Test-Path -LiteralPath $JMeterBat)) {
     throw "JMeter executable not found: $JMeterBat"
@@ -38,12 +40,24 @@ $jmeterExitCode = $LASTEXITCODE
 if ($jmeterExitCode -ne 0) {
     throw "JMeter process failed with exit code $jmeterExitCode. Log: $logFile"
 }
+if (-not (Test-Path -LiteralPath $resultFile)) {
+    throw "JMeter did not create the expected JTL result: $resultFile. Log: $logFile"
+}
+if (-not (Test-Path -LiteralPath (Join-Path $reportDirectory 'statistics.json'))) {
+    throw "JMeter did not create the expected HTML report: $reportDirectory. Log: $logFile"
+}
 
 $rows = Import-Csv -LiteralPath $resultFile
 $failedRows = @($rows | Where-Object { $_.success -ne 'true' })
 $bookingRows = @($rows | Where-Object { $_.label -eq 'LOAD - Concurrent booking' })
 $created = @($bookingRows | Where-Object { $_.responseCode -eq '201' }).Count
 $full = @($bookingRows | Where-Object { $_.responseCode -eq '409' }).Count
+
+$summaryScript = Join-Path $scriptRoot 'write-summary-zh.ps1'
+& $summaryScript `
+    -ResultFile $resultFile `
+    -StatisticsFile (Join-Path $reportDirectory 'statistics.json') `
+    -OutputFile $summaryFile
 
 Write-Host "Concurrent booking: created=$created full=$full samples=$($rows.Count) errors=$($failedRows.Count)"
 Write-Host "HTML report: $reportDirectory\index.html"

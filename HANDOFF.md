@@ -1,8 +1,8 @@
 # QueueMate 项目交接文档
 
-> 最后更新：2026-08-11
+> 最后更新：2026-08-16
 > 当前分支：`main`  
-> 上一阶段代码基线：`22733c7 test: add admin wallet adjustment Playwright flow`
+> 上一阶段代码基线：`402b8ca test: add concurrent booking JMeter regression`
 > 认证初版基线提交：`2bc876e feat: add initial authentication module`  
 > GitHub：`git@github.com:Xixi051108/QueueMate.git`
 
@@ -461,10 +461,22 @@ SQL 文件和本地数据库保存的是 BCrypt 哈希。以上明文仅为公�
 
 - `concurrent-booking.jmx` 自动创建容量为 3 的免费时段和 12 个动态用户，通过同步定时器同时提交预约。
 - 业务断言要求精确得到 3 个 `201` 和 9 个 `409/BOOKING_SLOT_FULL`，并校验 `reservedCount=3`、`availableCapacity=0`。
-- `run.ps1` 生成带时间戳的 JTL 和 HTML 报告，并额外检查 JTL；即使 JMeter 进程返回 0，只要存在失败采样也会返回失败。
+- `run.ps1` 生成带时间戳的 JTL、JMeter 原始英文报告和 QueueMate 中文概览，并额外检查 JTL；即使 JMeter 进程返回 0，只要存在失败采样也会返回失败。
 - 2026-08-11 对真实 Spring Boot + MySQL 执行：预约平均 191.1ms、P90 209ms、P95 215ms、最大 215ms；全流程 56 个采样、0 错误。
 - tearDown 线程组逐一清理 12 个动态用户，再清理测试地点和时段，最终 `remainingArtifacts=0`。
 - 为支持每个并发用户的独立安全清理标记，`PostmanCleanupRequest.runId` 允许小写字母、数字和下划线，长度仍限制为 8 到 32；清理服务继续校验用户固定显示名和手机号。
+
+### 3.14 GitHub Actions 持续集成与中文报告
+
+已建立两层 GitHub Actions：
+
+- `.github/workflows/ci.yml` 在每次推送和拉取请求时执行 Java 21 Maven 测试和 Node.js 22 Vite 生产构建。
+- `.github/workflows/full-regression.yml` 在 `main` 相关目录变更或手动触发时创建临时 MySQL 8 环境，启动 E2E 后端，依次执行 Newman、Playwright 和 JMeter。
+- 基础流水线上传 Surefire 报告和前端构建产物；全量流水线上传 Newman JSON、Playwright HTML/失败证据、JMeter JTL/中英文报告及后端日志，统一保留 14 天。
+- JMeter 新增 `write-summary-zh.ps1`，从标准 `statistics.json` 和 JTL 生成中文概览；原始英文报告继续保留，不改动第三方证据格式。
+- 中文概览已使用 2026-08-16 本地真实报告验证，桌面和 390px 移动端均无中文乱码或横向内容缺失。
+- 2026-08-16 本轮本地验证：Maven 144 个测试通过、Vite 生产构建成功、Newman 45 请求/99 断言通过、Playwright 6 条用例通过；JMeter 56 个采样零错误，12 个并发预约得到 3 成功和 9 个名额已满，预约平均 82ms、P90 106.2ms、P95/最大 108ms，中文概览自动生成。
+- 工作流配置加入仓库后，仍需以首次 GitHub Actions 远程执行结果作为 Ubuntu Runner 环境的最终通过证据，不能把本地配置验证写成远程已通过。
 
 ## 4. 当前卡点与已知边界
 
@@ -475,7 +487,7 @@ SQL 文件和本地数据库保存的是 BCrypt 哈希。以上明文仅为公�
 - 密码策略目前只有 8 到 64 字符的长度限制，不代表生产级密码安全。
 - JWT 只有 Access Token，没有 Refresh Token、主动登出、黑名单和密钥轮换。
 - 登录尚无限流、失败次数锁定、审计日志和验证码。
-- Newman 全量接口回归已通过；尚未接入 GitHub Actions。
+- Newman、Playwright 和 JMeter 已接入 GitHub Actions；首次远程执行结果仍需确认。
 - 管理员取消预约仍需手动输入预约 ID，因为后端没有全局预约列表接口。
 - 管理员余额调整、商家入驻审核、付费预约、充值、取消退款、消费码核销、用户取号、商家叫号和完成/过号均已完成正式 Playwright 覆盖。
 - 时段首版只禁止完全相同的时间范围，没有禁止重叠时段。
@@ -484,17 +496,11 @@ SQL 文件和本地数据库保存的是 BCrypt 哈希。以上明文仅为公�
 
 ## 5. 下一步计划
 
-下一模块建议建立 GitHub Actions 持续集成。
+需求范围内的开发、自动化测试资产和 GitHub Actions 配置已经形成完整生态链。下一步先确认首次远程流水线证据，再按作品集展示需要选择增强项：
 
-建议顺序：
-
-1. 建立 GitHub Actions 后端和前端构建流水线。
-2. 将 Newman、JMeter 和 Playwright 分层接入 CI。
-
-```text
-Newman / JMeter / Playwright 已完成本地正式回归
-  -> GitHub Actions
-```
+1. 在 GitHub Actions 页面确认基础构建和全量回归均通过，下载并检查上传报告。
+2. 若继续完善业务，优先评估管理员全局预约列表、时段重叠校验、时段编辑和“我的预约”分页。
+3. 若继续研究性能，增加 50、100、300 人阶梯并发与服务端资源监控。
 
 ## 6. 绝对不要再踩的坑
 
