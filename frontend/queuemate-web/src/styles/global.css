@@ -14,7 +14,10 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: var(--qm-canvas);
+  background:
+    radial-gradient(circle at 1px 1px, rgba(18, 78, 120, .075) 1px, transparent 1.2px),
+    var(--qm-canvas);
+  background-size: 24px 24px;
 }
 
 .skip-link {
@@ -60,16 +63,47 @@ a:hover {
 }
 
 .page-heading {
+  position: relative;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
+  padding: 24px 26px;
+  overflow: hidden;
+  border: 1px solid var(--qm-line-200);
+  border-radius: var(--qm-radius-lg);
+  background: linear-gradient(105deg, var(--qm-surface) 0 72%, var(--qm-primary-050) 72% 100%);
 }
+
+.page-heading::after {
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  padding: 6px 11px;
+  transform: rotate(3deg);
+  border: 2px solid var(--qm-ink-900);
+  border-radius: 5px 10px 5px 9px;
+  background: var(--qm-sticker-sun);
+  box-shadow: var(--qm-shadow-sticker-sm);
+  color: var(--qm-ink-900);
+  content: attr(data-sticker);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .04em;
+}
+
+.page-heading:not([data-sticker])::after,
+.page-heading[data-sticker=""]::after { display: none; }
+
+.page-heading > * { position: relative; z-index: 1; }
 
 .page-heading h1 {
   margin: 0;
   font-size: clamp(26px, 4vw, 30px);
   line-height: 1.25;
+  font-family: var(--qm-font-display);
+  font-weight: 800;
+  letter-spacing: -.025em;
 }
 
 .page-heading p {
@@ -80,7 +114,7 @@ a:hover {
 
 .surface {
   border: 1px solid var(--qm-line-200);
-  border-radius: var(--qm-radius-md);
+  border-radius: var(--qm-radius-lg);
   background: var(--qm-surface);
 }
 
@@ -97,6 +131,8 @@ a:hover {
   margin: 0;
   font-size: 20px;
   line-height: 1.4;
+  font-family: var(--qm-font-display);
+  font-weight: 800;
 }
 
 .action-row {
@@ -141,6 +177,7 @@ a:hover {
   align-items: end;
   gap: 12px;
   padding: 16px;
+  box-shadow: 0 5px 0 rgba(20, 43, 58, .06);
 }
 
 .filter-field {
@@ -162,8 +199,14 @@ a:hover {
 .el-button,
 .el-input__wrapper,
 .el-select__wrapper {
-  min-height: 40px;
+  min-height: 44px;
 }
+
+.el-button { font-weight: 700; transition: filter var(--qm-motion-fast), box-shadow var(--qm-motion-fast); }
+.el-button:not(.is-disabled):hover { filter: saturate(1.08); }
+.el-button:not(.is-disabled):active { filter: brightness(.94); }
+.el-button--primary:not(.is-disabled) { box-shadow: 0 3px 0 var(--qm-primary-700); }
+.el-button--primary:not(.is-disabled):active { box-shadow: 0 1px 0 var(--qm-primary-700); }
 
 .el-button + .el-button {
   margin-left: 8px;
@@ -181,7 +224,10 @@ a:hover {
   .page-heading {
     align-items: stretch;
     flex-direction: column;
+    padding: 22px 18px;
   }
+
+  .page-heading::after { position: static; align-self: flex-start; order: -1; width: max-content; transform: rotate(-2deg); }
 
   .filters {
     align-items: stretch;

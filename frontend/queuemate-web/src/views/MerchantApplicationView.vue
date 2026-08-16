@@ -125,7 +125,7 @@ onMounted(load)
 
 <template>
   <div class="page onboarding-page">
-    <header class="page-heading">
+    <header class="page-heading" data-sticker="开店计划">
       <div>
         <span class="eyebrow">商家服务</span>
         <h1>申请门店入驻</h1>

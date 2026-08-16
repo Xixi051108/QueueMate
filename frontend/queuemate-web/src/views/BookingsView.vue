@@ -61,7 +61,7 @@ onMounted(load)
 
 <template>
   <div class="page">
-    <header class="page-heading"><div><h1>我的预约</h1><p>查看预约状态、消费凭证和退款结果。</p></div></header>
+    <header class="page-heading" data-sticker="我的票夹"><div><h1>我的预约</h1><p>查看预约状态、消费凭证和退款结果。</p></div></header>
     <div class="filters surface">
       <div class="filter-field"><label class="field-label" for="booking-status">预约状态</label><el-select id="booking-status" v-model="status" clearable placeholder="全部状态" @change="load"><el-option v-for="item in ['BOOKED','FULFILLED','CANCELLED','NO_SHOW']" :key="item" :label="labelOf(item)" :value="item" /></el-select></div>
     </div>

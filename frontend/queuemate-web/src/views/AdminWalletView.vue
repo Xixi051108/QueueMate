@@ -62,7 +62,7 @@ onMounted(load)
 
 <template>
   <div class="page">
-    <header class="page-heading"><div><span class="workspace-label">管理员工作区</span><h1>钱包管理</h1><p>按用户或类型查询全局流水，并对指定用户的钱包余额进行人工调整。</p></div><el-button type="primary" :icon="Plus" @click="dialogOpen = true">调整余额</el-button></header>
+    <header class="page-heading" data-sticker="账本清楚"><div><span class="workspace-label">管理员工作区</span><h1>钱包管理</h1><p>按用户或类型查询全局流水，并对指定用户的钱包余额进行人工调整。</p></div><el-button type="primary" :icon="Plus" @click="dialogOpen = true">调整余额</el-button></header>
     <form class="filters surface" aria-label="筛选钱包流水" @submit.prevent="load"><div class="filter-field filter-field--grow"><label class="field-label" for="wallet-user-id">用户 ID</label><el-input id="wallet-user-id" v-model.trim="filters.userId" inputmode="numeric" clearable placeholder="留空查看全部用户" /></div><div class="filter-field"><label class="field-label" for="wallet-type">流水类型</label><el-select id="wallet-type" v-model="filters.type" clearable placeholder="全部类型"><el-option v-for="item in ['RECHARGE','PAYMENT','REFUND','ADJUSTMENT']" :key="item" :label="labelOf(item)" :value="item" /></el-select></div><el-button type="primary" native-type="submit" :loading="loading">查询流水</el-button><el-button :icon="Refresh" @click="reset">重置</el-button></form>
     <p class="boundary-note">当前后端流水响应不包含用户 ID；如需核对某个用户，请先使用上方用户 ID 进行筛选。</p>
     <el-skeleton v-if="loading" :rows="9" animated />

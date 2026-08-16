@@ -35,7 +35,7 @@ onMounted(load)
 
 <template>
   <div class="page">
-    <header class="page-heading"><div><h1>我的排队</h1><p>按日期查看领取过的号码和叫号状态。</p></div></header>
+    <header class="page-heading" data-sticker="正在排队"><div><h1>我的排队</h1><p>按日期查看领取过的号码和叫号状态。</p></div></header>
     <div class="filters surface"><div class="filter-field filter-field--grow"><label class="field-label" for="queue-venue">地点</label><el-select id="queue-venue" v-model="venueId" filterable clearable placeholder="全部地点" @change="load"><el-option v-for="venue in venues" :key="venue.id" :label="venue.name" :value="venue.id" /></el-select></div><div class="filter-field"><label class="field-label" for="queue-date">排队日期</label><el-date-picker id="queue-date" v-model="queueDate" type="date" value-format="YYYY-MM-DD" :clearable="false" @change="load" /></div><div class="filter-field"><label class="field-label" for="queue-status">号码状态</label><el-select id="queue-status" v-model="status" clearable placeholder="全部状态" @change="load"><el-option v-for="item in ['WAITING','CALLED','COMPLETED','MISSED']" :key="item" :label="labelOf(item)" :value="item" /></el-select></div></div>
     <el-skeleton v-if="loading" :rows="8" animated />
     <StatePanel v-else-if="error" title="排队记录加载失败" :description="error" error @retry="load" />

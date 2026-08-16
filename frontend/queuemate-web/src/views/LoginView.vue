@@ -6,6 +6,7 @@ import { ElMessage } from 'element-plus'
 import { authApi } from '../services/api'
 import { authState } from '../state/auth'
 import { homeForRole } from '../router'
+import StickerBadge from '../components/StickerBadge.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -43,6 +44,10 @@ async function submit() {
 <template>
   <div class="login-layout">
     <section class="login-intro" aria-labelledby="login-title">
+      <div class="intro-stickers">
+        <StickerBadge text="少排队" tone="sun" icon="ticket" tilt="left" />
+        <StickerBadge text="多生活" tone="coral" icon="spark" tilt="right" />
+      </div>
       <span class="eyebrow">本地生活服务台</span>
       <h1 id="login-title">少等一会，<br />多做一点喜欢的事。</h1>
       <p>查看地点、预约时段、现场取号，并在一个清楚的界面里跟进状态。</p>
@@ -81,7 +86,8 @@ async function submit() {
 
 <style scoped>
 .login-layout { display: grid; min-height: calc(100vh - 172px); grid-template-columns: minmax(0, 1.1fr) minmax(360px, .8fr); align-items: center; gap: clamp(40px, 8vw, 112px); }
-.login-intro { max-width: 620px; }
+.login-intro { position: relative; max-width: 620px; }
+.intro-stickers { display: flex; gap: 14px; margin-bottom: 24px; }
 .eyebrow, .form-kicker { color: var(--qm-primary-700); font-size: 13px; font-weight: 700; letter-spacing: .08em; }
 .login-intro h1 { margin: 18px 0; color: var(--qm-ink-900); font-size: clamp(38px, 6vw, 62px); line-height: 1.16; letter-spacing: -.035em; }
 .login-intro p { max-width: 520px; margin: 0; color: var(--qm-ink-700); font-size: 18px; line-height: 1.8; }

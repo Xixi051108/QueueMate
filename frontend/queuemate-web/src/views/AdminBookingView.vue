@@ -33,7 +33,7 @@ async function cancelBooking() {
 
 <template>
   <div class="page">
-    <header class="page-heading"><div><span class="workspace-label">管理员工作区</span><h1>预约处理</h1><p>对明确的预约记录执行管理员取消。该操作会保留历史记录并按后端规则处理退款。</p></div></header>
+    <header class="page-heading" data-sticker="认真处理"><div><span class="workspace-label">管理员工作区</span><h1>预约处理</h1><p>对明确的预约记录执行管理员取消。该操作会保留历史记录并按后端规则处理退款。</p></div></header>
     <div class="admin-grid">
       <section class="cancel-panel surface" aria-labelledby="cancel-title"><div><h2 id="cancel-title">按预约 ID 取消</h2><p>当前后端未提供全部预约查询接口，因此需要先从用户或测试记录中取得预约 ID。</p></div><el-form ref="formRef" :model="form" :rules="rules" label-position="top" @submit.prevent="cancelBooking"><el-form-item label="预约 ID" prop="bookingId"><el-input-number v-model="form.bookingId" :min="1" :step="1" controls-position="right" /></el-form-item><el-form-item label="取消原因（可选）" prop="reason"><el-input v-model.trim="form.reason" type="textarea" :rows="4" maxlength="255" show-word-limit placeholder="例如：管理员协助用户取消" /></el-form-item><el-button type="danger" plain native-type="submit" :loading="loading">确认取消预约</el-button></el-form></section>
       <section class="guidance surface" aria-labelledby="guidance-title"><h2 id="guidance-title">操作影响</h2><dl><div><dt>预约状态</dt><dd><code>BOOKED → CANCELLED</code></dd></div><div><dt>场所名额</dt><dd>成功取消后自动回补 1 个名额</dd></div><div><dt>收费预约</dt><dd>未核销且符合时间窗口时自动退款</dd></div><div><dt>消费码</dt><dd>退款成功后变为已作废</dd></div><div><dt>重新预约</dt><dd>取消后用户可以重新预约同一时段</dd></div></dl></section>

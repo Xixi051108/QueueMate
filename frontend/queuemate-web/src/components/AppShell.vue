@@ -5,6 +5,7 @@ import { ArrowDown, ArrowRight, Calendar, Coin, Location, OfficeBuilding, Promot
 import { authState } from '../state/auth'
 import { homeForRole } from '../router'
 import { labelOf } from '../utils/format'
+import StickerBadge from './StickerBadge.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -53,11 +54,12 @@ function logout() {
     <header class="service-header">
       <div class="header-inner">
         <RouterLink class="brand" :to="brandTarget" aria-label="QueueMate 首页">
-          <span class="brand-mark" aria-hidden="true">Q</span>
+          <span class="brand-mark" aria-hidden="true"><b>Q</b><i></i></span>
           <span>
             <strong>QueueMate</strong>
             <small>预约与排队</small>
           </span>
+          <StickerBadge class="brand-sticker" text="少排一会" tone="mint" icon="route" tilt="right" />
         </RouterLink>
 
         <nav class="primary-nav" aria-label="主导航">
@@ -117,10 +119,13 @@ function logout() {
 .service-header { position: sticky; top: 0; z-index: 20; border-bottom: 1px solid var(--qm-line-200); background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(8px); }
 .header-inner { width: min(1200px, calc(100% - 48px)); min-height: 68px; margin: 0 auto; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 28px; }
 .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--qm-ink-900); }
-.brand-mark { display: grid; width: 36px; height: 36px; place-items: center; border: 2px solid var(--qm-primary-600); border-radius: 6px; color: var(--qm-primary-700); font-family: var(--qm-font-data); font-size: 20px; font-weight: 700; }
+.brand-mark { position: relative; display: grid; width: 38px; height: 38px; place-items: center; overflow: hidden; border: 2px solid var(--qm-ink-900); border-radius: 8px 4px 8px 4px; background: var(--qm-sticker-sun); box-shadow: 3px 3px 0 var(--qm-ink-900); color: var(--qm-ink-900); font-family: var(--qm-font-data); font-size: 20px; font-weight: 800; transform: rotate(-2deg); }
+.brand-mark b { position: relative; z-index: 1; }
+.brand-mark i { position: absolute; right: -8px; bottom: -8px; width: 22px; height: 22px; border: 2px solid var(--qm-ink-900); border-radius: 50%; background: var(--qm-sticker-coral); }
 .brand strong, .brand small { display: block; }
 .brand strong { font-size: 16px; letter-spacing: .01em; }
 .brand small { margin-top: 1px; color: var(--qm-ink-500); font-size: 11px; }
+.brand-sticker { margin-left: 4px; transform: rotate(2deg) scale(.88); transform-origin: left center; }
 .primary-nav { display: flex; align-items: stretch; gap: 4px; height: 68px; }
 .primary-nav a { display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; border-bottom: 3px solid transparent; color: var(--qm-ink-700); font-size: 14px; font-weight: 600; }
 .primary-nav a:hover { background: var(--qm-primary-050); color: var(--qm-primary-700); }
@@ -142,7 +147,7 @@ function logout() {
   .header-inner, .main-content { width: calc(100% - 32px); }
   .service-header { position: static; }
   .header-inner { gap: 8px; }
-  .brand small, .account-name { display: none; }
+  .brand small, .account-name, .brand-sticker { display: none; }
   .role-switch { min-height: 44px; }
   .main-content { padding: 24px 0 48px; }
 }

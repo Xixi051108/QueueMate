@@ -90,7 +90,7 @@ onMounted(load)
 
 <template>
   <div class="page review-page">
-    <header class="page-heading">
+    <header class="page-heading" data-sticker="审核中">
       <div>
         <span class="eyebrow">管理员工作区</span>
         <h1>商家入驻审核</h1>

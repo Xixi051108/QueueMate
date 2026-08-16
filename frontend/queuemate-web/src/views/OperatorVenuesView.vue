@@ -132,7 +132,7 @@ onMounted(load)
 
 <template>
   <div class="page">
-    <header class="page-heading">
+    <header class="page-heading" data-sticker="营业准备">
       <div><span class="workspace-label">{{ isAdmin ? '管理员工作区' : '商家工作区' }}</span><h1>{{ isAdmin ? '场所管理' : '我的场所' }}</h1><p>维护地点资料，并进入场所运营页管理时段、排队、核销和统计。</p></div>
       <el-button type="primary" :icon="Plus" @click="openCreate">创建地点</el-button>
     </header>

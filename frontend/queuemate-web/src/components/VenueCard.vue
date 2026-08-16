@@ -40,10 +40,11 @@ defineProps({
 </template>
 
 <style scoped>
-.venue-card { display: grid; min-height: 296px; grid-template-rows: auto 1fr auto auto auto; gap: 16px; padding: 22px; transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease; }
-.venue-card:hover { border-color: var(--qm-line-300); box-shadow: var(--qm-shadow-raised); transform: translateY(-2px); }
+.venue-card { position: relative; display: grid; min-height: 296px; grid-template-rows: auto 1fr auto auto auto; gap: 16px; padding: 22px; overflow: hidden; transition: border-color var(--qm-motion-fast), box-shadow var(--qm-motion-fast), transform var(--qm-motion-fast); }
+.venue-card::after { position: absolute; right: -28px; bottom: -30px; width: 76px; height: 76px; border: 2px solid var(--qm-ink-900); border-radius: 50%; background: var(--qm-sticker-mint); content: ""; opacity: .72; }
+.venue-card:hover { border-color: var(--qm-ink-900); box-shadow: var(--qm-shadow-sticker-sm); transform: translateY(-2px) rotate(-.25deg); }
 .venue-card__topline { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.category { color: var(--qm-primary-700); font-size: 13px; font-weight: 700; }
+.category { padding: 4px 9px; transform: rotate(-1.5deg); border: 1.5px solid var(--qm-ink-900); border-radius: 8px 3px 8px 4px; background: var(--qm-sticker-sky); color: var(--qm-ink-900); font-size: 12px; font-weight: 800; }
 h2 { margin: 0 0 8px; font-size: 19px; line-height: 1.4; }
 .description { display: -webkit-box; margin: 0; overflow: hidden; color: var(--qm-ink-500); line-height: 1.65; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .address { display: flex; align-items: flex-start; gap: 8px; color: var(--qm-ink-700); font-size: 14px; line-height: 1.5; }
@@ -51,6 +52,6 @@ h2 { margin: 0 0 8px; font-size: 19px; line-height: 1.4; }
 .services { display: flex; gap: 16px; border-top: 1px dashed var(--qm-line-300); padding-top: 14px; }
 .services span { display: inline-flex; align-items: center; gap: 5px; color: var(--qm-ink-500); font-size: 13px; }
 .services span.enabled { color: var(--qm-success-700); font-weight: 600; }
-.card-link { display: flex; min-height: 44px; align-items: center; justify-content: space-between; font-size: 14px; font-weight: 700; }
+.card-link { position: relative; z-index: 1; display: flex; min-height: 44px; align-items: center; justify-content: space-between; font-size: 14px; font-weight: 800; }
 @media (prefers-reduced-motion: reduce) { .venue-card:hover { transform: none; } }
 </style>

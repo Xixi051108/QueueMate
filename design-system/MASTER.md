@@ -1,30 +1,31 @@
 # QueueMate Design System
 
-> Version 1.1 · 2026-07-17
+> Version 1.2 · 2026-08-16
 > Scope: QueueMate Vue 3 web application  
 > Source of truth: global visual tokens, interaction rules, responsive behavior, and component states
 
 ## 1. Product and design direction
 
-QueueMate is a local-life booking and queueing tool for customers, venue operators, and administrators. Its interface should feel like a calm, efficient city service counter: information is easy to scan, the next action is obvious, and status changes are trustworthy.
+QueueMate is a local-life booking and queueing tool for customers, venue operators, and administrators. Its interface should feel like a calm, efficient city service counter mixed with a young urban travel journal: information is easy to scan, the next action is obvious, and status changes are trustworthy without making the page feel rigid.
 
-The visual signature is the **service ticket**. Queue numbers, booking codes, time slots, and consumption codes use a restrained ticket-like treatment: tabular numbers, perforation-style dividers, and compact status stamps. This is functional structure, not decoration.
+The visual signature is the **service ticket and route sticker**. Queue numbers, booking codes, time slots, and consumption codes use a restrained ticket-like treatment: tabular numbers, perforation-style dividers, and compact status stamps. Small route stickers add personality to page headings, empty states, tickets, and selected action regions without competing with business content.
 
 Design principles:
 
-1. **Status before ornament.** Capacity, price, queue progress, and booking state must be visible before supporting copy.
+1. **Status before decoration.** Capacity, price, queue progress, and booking state must be visible before supporting copy or stickers.
 2. **One primary action per region.** Secondary actions remain visually quiet.
-3. **Calm surfaces, decisive signals.** Most of the interface is neutral; color is reserved for navigation, actions, and state.
+3. **Calm surfaces, lively landmarks.** Most of the interface is neutral; color is reserved for navigation, actions, state, and a few route stickers.
 4. **Mobile use is first-class.** A user may book or take a number while standing outside a venue.
 5. **No simulated real-world integrations.** Do not introduce maps, real payment branding, SMS, or social-login visuals.
 
 Avoid:
 
-- purple/pink AI gradients, glassmorphism, decorative blobs, or generic bento marketing layouts;
+- purple/pink AI gradients, glassmorphism, generic decorative blobs, or generic bento marketing layouts;
 - gradients on buttons or cards;
 - excessive pill shapes; pills are limited to compact status labels;
 - radius values above 12px on ordinary surfaces;
 - decorative animation, autoplay motion, or scroll reveals;
+- more than two decorative stickers in one visual region, or stickers covering data and controls;
 - emoji as interface icons; use the Element Plus icon set or simple SVG icons;
 - vague copy such as “提交” when a specific verb such as “确认预约” is available.
 
@@ -68,6 +69,10 @@ The palette is inspired by public-service signage: deep blue for trust and navig
 | `--qm-danger-100` | `#FDE3E1` | error background |
 | `--qm-info-700` | `#2458A6` | neutral progress information |
 | `--qm-info-100` | `#E2EBFA` | information background |
+| `--qm-sticker-sun` | `#FFD166` | primary route sticker, friendly emphasis |
+| `--qm-sticker-coral` | `#FF8B7F` | lifestyle accent; decorative use only |
+| `--qm-sticker-mint` | `#7DE0BD` | calm brand sticker and card accent |
+| `--qm-sticker-sky` | `#A9DFF3` | category sticker and light information accent |
 
 Rules:
 
@@ -82,6 +87,7 @@ Use local/system fonts to keep the app fast and reliable in a local development 
 
 ```css
 --qm-font-sans: "Noto Sans SC", "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif;
+--qm-font-display: "Microsoft YaHei UI", "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
 --qm-font-data: "DIN Alternate", "Roboto Mono", Consolas, monospace;
 ```
 
@@ -133,13 +139,15 @@ No page may require horizontal scrolling at 375px. Wide data tables must become 
 --qm-radius-lg: 12px;
 --qm-shadow-raised: 0 8px 24px rgba(20, 43, 58, 0.08);
 --qm-shadow-overlay: 0 16px 40px rgba(20, 43, 58, 0.16);
+--qm-shadow-sticker-sm: 3px 3px 0 #142B3A;
+--qm-shadow-sticker: 5px 5px 0 #142B3A;
 ```
 
 - Inputs and buttons: 6px.
-- Cards: 8px, normally border-only; shadow appears only for hoverable or elevated content.
+- Cards: 8–12px, normally border-only; shadow appears only for hoverable or elevated content.
 - Dialogs and drawers: 12px.
 - Status tags: pill radius is allowed because the compact silhouette communicates “stamp/status.”
-- Do not stack shadows, colored shadows, or glow effects.
+- Route stickers may use one hard-edge ink shadow. Do not stack shadows, use colored shadows, or add glow effects.
 
 ## 7. Component rules and states
 
@@ -178,6 +186,14 @@ No page may require horizontal scrolling at 375px. Wide data tables must become 
 | Attention | low capacity, no-show, expiring | amber surface |
 | Failure | frozen, failed, invalid | red surface |
 
+### Route stickers
+
+- Use the shared `StickerBadge` component or the global `data-sticker` page-heading pattern.
+- Use simple inline SVG marks only; stickers are decorative and should be hidden from assistive technology.
+- Use at most two stickers in one region. Preferred locations are page headings, authentication introductions, empty states, and ticket or wallet highlights.
+- A slight rotation of 1–3 degrees and a single hard-edge shadow are allowed; decorative stickers must never contain critical state or the only copy of an action.
+- Keep stickers out of dense tables, dialogs, form fields, and destructive confirmation areas.
+
 ### Service ticket pattern
 
 - Use for queue tickets, booking vouchers, and booking summaries only.
@@ -204,7 +220,7 @@ No page may require horizontal scrolling at 375px. Wide data tables must become 
 
 ## 9. Motion and interaction
 
-- Default transition duration: 160ms; overlays may use 220ms.
+- Default transition duration: 180ms; overlays may use 220ms.
 - Animate opacity and transform only. Do not animate width, height, or layout position.
 - No automatic page-load choreography or scroll-triggered reveal.
 - Hover elevation is limited to clickable cards on pointer devices.

@@ -6,6 +6,7 @@ import { ElMessage } from 'element-plus'
 import StatePanel from '../components/StatePanel.vue'
 import { walletApi } from '../services/api'
 import { formatBalanceChange, formatDateTime, formatMoney, isBalanceIncrease, labelOf } from '../utils/format'
+import StickerBadge from '../components/StickerBadge.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -74,7 +75,7 @@ onMounted(initialize)
 
 <template>
   <div class="page">
-    <header class="page-heading"><div><h1>我的钱包</h1><p>站内模拟余额用于支付收费预约时段。</p></div></header>
+    <header class="page-heading" data-sticker="余额补给"><div><h1>我的钱包</h1><p>站内模拟余额用于支付收费预约时段。</p></div></header>
     <section v-if="returnPath" class="recharge-context surface" role="status" aria-live="polite">
       <div><strong>正在为预约补充余额</strong><span>充值成功后会自动返回原地点，你可以重新确认预约。</span></div>
       <el-button :icon="ArrowLeft" @click="router.push(returnPath)">返回预约页面</el-button>
@@ -82,7 +83,7 @@ onMounted(initialize)
     <el-skeleton v-if="loading" :rows="8" animated />
     <StatePanel v-else-if="error" title="钱包加载失败" :description="error" error @retry="load" />
     <template v-else>
-      <section class="wallet-card surface"><div><span>可用余额</span><strong class="data-value">{{ formatMoney(wallet?.balance) }}</strong><small>钱包状态：{{ wallet?.status === 'ACTIVE' ? '正常' : labelOf(wallet?.status) }}</small></div><el-button type="primary" @click="dialogOpen = true">模拟充值</el-button></section>
+      <section class="wallet-card surface"><StickerBadge class="wallet-sticker" text="补给站" tone="coral" icon="spark" tilt="right" /><div><span>可用余额</span><strong class="data-value">{{ formatMoney(wallet?.balance) }}</strong><small>钱包状态：{{ wallet?.status === 'ACTIVE' ? '正常' : labelOf(wallet?.status) }}</small></div><el-button type="primary" @click="dialogOpen = true">模拟充值</el-button></section>
       <section class="surface transactions"><div class="transactions__header"><div><h2 class="section-title">余额记录</h2><p>充值、支付、退款与调整均保留变动前后余额。</p></div><el-select v-model="type" clearable placeholder="全部类型" aria-label="流水类型" @change="load"><el-option v-for="item in ['RECHARGE','PAYMENT','REFUND','ADJUSTMENT']" :key="item" :label="labelOf(item)" :value="item" /></el-select></div>
         <StatePanel v-if="!transactions.length" title="暂无余额记录" description="充值或完成收费预约后，记录会出现在这里。" />
         <div v-else class="transaction-list"><article v-for="item in transactions" :key="item.id"><div><strong>{{ labelOf(item.type) }}</strong><span>{{ formatDateTime(item.createdAt) }} · {{ item.remark || '无备注' }}</span></div><div class="transaction-amount"><strong class="data-value" :class="{ positive: isBalanceIncrease(item) }">{{ formatBalanceChange(item) }}</strong><span class="data-value">余额 {{ formatMoney(item.balanceAfter) }}</span></div></article></div>
@@ -101,7 +102,8 @@ onMounted(initialize)
 .recharge-context strong { color: var(--qm-ink-900); }
 .recharge-context span, .recharge-help { color: var(--qm-ink-700); font-size: 13px; line-height: 1.6; }
 .recharge-help { margin: 0 0 18px; }
-.wallet-card { display: flex; min-height: 190px; align-items: flex-end; justify-content: space-between; gap: 24px; padding: 28px; border-left: 4px solid var(--qm-primary-600); }
+.wallet-card { position: relative; display: flex; min-height: 190px; align-items: flex-end; justify-content: space-between; gap: 24px; padding: 28px; overflow: hidden; border-left: 4px solid var(--qm-primary-600); background: linear-gradient(115deg, var(--qm-surface) 0 72%, var(--qm-sticker-sun) 72% 100%); }
+.wallet-sticker { position: absolute; top: 20px; right: 24px; }
 .wallet-card > div { display: grid; gap: 8px; } .wallet-card span, .wallet-card small { color: var(--qm-ink-500); } .wallet-card strong { font-size: clamp(34px, 7vw, 48px); color: var(--qm-ink-900); }
 .transactions { padding: 24px; }
 .transactions__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
@@ -109,5 +111,5 @@ onMounted(initialize)
 .transaction-list article { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 17px 0; border-top: 1px solid var(--qm-line-200); }
 .transaction-list article > div { display: grid; gap: 4px; } .transaction-list span { color: var(--qm-ink-500); font-size: 12px; }
 .transaction-amount { text-align: right; } .transaction-amount strong { color: var(--qm-danger-700); } .transaction-amount strong.positive { color: var(--qm-success-700); }
-@media (max-width: 600px) { .recharge-context, .wallet-card, .transactions__header { align-items: stretch; flex-direction: column; } .recharge-context .el-button, .wallet-card .el-button { width: 100%; } .transaction-list article { align-items: flex-start; } }
+@media (max-width: 600px) { .recharge-context, .wallet-card, .transactions__header { align-items: stretch; flex-direction: column; } .recharge-context .el-button, .wallet-card .el-button { width: 100%; } .transaction-list article { align-items: flex-start; } .wallet-sticker { position: static; align-self: flex-start; order: -1; } }
 </style>

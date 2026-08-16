@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { Lock, Phone, User } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { authApi } from '../services/api'
+import StickerBadge from '../components/StickerBadge.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -56,6 +57,7 @@ async function submit() {
 <template>
   <div class="register-layout">
     <section class="register-intro" aria-labelledby="register-title">
+      <StickerBadge class="register-sticker" text="新手通行证" tone="mint" icon="ticket" tilt="left" />
       <span class="eyebrow">普通用户注册</span>
       <h1 id="register-title">一张账号，<br />管好每一次预约。</h1>
       <p>注册后会自动创建站内钱包。你可以预约时段、查看消费码，也可以领取现场排队号码。</p>
@@ -86,6 +88,7 @@ async function submit() {
 <style scoped>
 .register-layout { display: grid; min-height: calc(100vh - 172px); grid-template-columns: minmax(0, .9fr) minmax(480px, 1.1fr); align-items: center; gap: clamp(40px, 7vw, 96px); }
 .register-intro { max-width: 560px; }
+.register-sticker { margin-bottom: 24px; }
 .eyebrow, .form-kicker { color: var(--qm-primary-700); font-size: 13px; font-weight: 700; letter-spacing: .08em; }
 .register-intro h1 { margin: 18px 0; font-size: clamp(36px, 5vw, 56px); line-height: 1.18; letter-spacing: -.03em; }
 .register-intro p { margin: 0; color: var(--qm-ink-700); font-size: 17px; line-height: 1.8; }

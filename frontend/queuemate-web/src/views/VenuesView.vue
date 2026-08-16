@@ -103,7 +103,7 @@ watch(
 
 <template>
   <div class="page">
-    <header class="page-heading">
+    <header class="page-heading" data-sticker="现在出发">
       <div>
         <h1>找到下一站</h1>
         <p>浏览可预约、可现场排队的本地模拟场所。</p>

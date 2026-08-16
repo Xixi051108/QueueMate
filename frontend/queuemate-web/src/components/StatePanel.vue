@@ -24,8 +24,8 @@ defineEmits(['retry'])
 </template>
 
 <style scoped>
-.state-panel { display: grid; min-height: 220px; place-items: center; align-content: center; gap: 10px; padding: 32px; text-align: center; }
-.state-icon { font-size: 34px; color: var(--qm-primary-600); }
+.state-panel { display: grid; min-height: 220px; place-items: center; align-content: center; gap: 12px; padding: 32px; border-style: dashed; background: linear-gradient(135deg, var(--qm-surface), var(--qm-primary-050)); text-align: center; }
+.state-icon { display: grid; width: 58px; height: 54px; place-items: center; transform: rotate(-3deg); border: 2px solid var(--qm-ink-900); border-radius: 12px 5px 10px 6px; background: var(--qm-sticker-sun); box-shadow: var(--qm-shadow-sticker-sm); color: var(--qm-ink-900); font-size: 28px; }
 .state-icon.error { color: var(--qm-danger-700); }
 h2 { margin: 0; font-size: 18px; }
 p { max-width: 520px; margin: 0; color: var(--qm-ink-500); line-height: 1.6; }

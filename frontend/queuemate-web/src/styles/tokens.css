@@ -18,13 +18,21 @@
   --qm-danger-100: #fde3e1;
   --qm-info-700: #2458a6;
   --qm-info-100: #e2ebfa;
+  --qm-sticker-sun: #ffd166;
+  --qm-sticker-coral: #ff8b7f;
+  --qm-sticker-mint: #7de0bd;
+  --qm-sticker-sky: #a9dff3;
   --qm-font-sans: "Noto Sans SC", "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif;
+  --qm-font-display: "Microsoft YaHei UI", "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
   --qm-font-data: "DIN Alternate", "Roboto Mono", Consolas, monospace;
   --qm-radius-sm: 4px;
   --qm-radius-md: 8px;
   --qm-radius-lg: 12px;
   --qm-shadow-raised: 0 8px 24px rgba(20, 43, 58, 0.08);
   --qm-shadow-overlay: 0 16px 40px rgba(20, 43, 58, 0.16);
+  --qm-shadow-sticker-sm: 3px 3px 0 var(--qm-ink-900);
+  --qm-shadow-sticker: 5px 5px 0 var(--qm-ink-900);
+  --qm-motion-fast: 180ms ease;
 
   --el-color-primary: var(--qm-primary-600);
   --el-color-primary-dark-2: var(--qm-primary-700);
