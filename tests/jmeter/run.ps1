@@ -21,6 +21,7 @@ if (-not (Test-Path -LiteralPath $JMeterBat)) {
 }
 
 New-Item -ItemType Directory -Force -Path $resultsDirectory | Out-Null
+New-Item -ItemType Directory -Force -Path $reportRoot | Out-Null
 $arguments = @(
     '-n',
     '-t', $testPlan,
