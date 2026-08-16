@@ -57,7 +57,7 @@ jobs:
       - name: 配置 pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 11.19.0
 
       - name: 配置 Node.js 22
         uses: actions/setup-node@v4
