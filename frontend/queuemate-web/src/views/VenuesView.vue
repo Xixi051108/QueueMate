@@ -145,6 +145,8 @@ watch(
       <el-pagination
         background
         layout="prev, pager, next"
+        prev-text="上一页"
+        next-text="下一页"
         :current-page="currentPage"
         :page-size="PAGE_SIZE"
         :pager-count="5"
@@ -158,15 +160,20 @@ watch(
 <style scoped>
 .result-count { color: var(--qm-ink-500); font-size: 14px; }
 .venue-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
-.pagination { display: flex; justify-content: center; padding-top: 8px; }
+.pagination { display: flex; justify-content: center; padding: 10px 0 4px; }
 .pagination :deep(.btn-prev),
 .pagination :deep(.btn-next),
 .pagination :deep(.el-pager li) { min-width: 44px; height: 44px; }
+.pagination :deep(.btn-prev),
+.pagination :deep(.btn-next) { padding: 0 14px; font-weight: 700; }
 @media (max-width: 1023px) { .venue-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 680px) {
   .venue-grid { grid-template-columns: 1fr; }
   .pagination :deep(.btn-prev),
   .pagination :deep(.btn-next),
   .pagination :deep(.el-pager li) { margin: 0 2px; }
+}
+@media (max-width: 480px) {
+  .pagination :deep(.el-pager li:not(.is-active)) { display: none; }
 }
 </style>
