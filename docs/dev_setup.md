@@ -121,6 +121,8 @@ E2E 启动项只应用以下 JVM 参数：
 
 完成 Postman/Newman 回归后应停止 E2E 实例；日常开发使用普通启动项。
 
+普通环境会自动生成每日固定时段，`e2e` profile 不运行此任务。切换 profile 不会删除已经生成的时段；固定时间的回归夹具应在独立测试数据库实例运行，GitHub Actions 已通过临时 MySQL 容器提供该隔离。
+
 ## 7. 前端启动
 
 前端使用 Vue3、Vite、Element Plus、Axios 和 pnpm：

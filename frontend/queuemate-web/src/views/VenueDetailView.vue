@@ -94,6 +94,13 @@ async function book(slot) {
   }
 }
 
+function bookingUnavailable(slot) {
+  if (venue.value.status !== 'ACTIVE') return '暂停营业'
+  if (new Date(`${slot.slotDate}T${slot.startTime}`).getTime() <= Date.now()) return '已开始'
+  if (slot.availableCapacity <= 0) return '已满'
+  return ''
+}
+
 async function takeNumber() {
   if (!requireUser(true)) return
   const confirmed = await ElMessageBox.confirm('确认领取今天的现场排队号码？', '现场取号', {
@@ -144,14 +151,14 @@ onMounted(load)
       </header>
 
       <section v-if="venue.bookingEnabled" class="surface detail-section">
-          <div class="section-heading"><div><h2><el-icon><Calendar /></el-icon>可预约时段</h2><p>展示未来 14 天仍开放的时段。</p></div><RouterLink v-if="isOperator" :to="`/manage/venues/${venue.id}`"><el-button>进入运营工作台</el-button></RouterLink></div>
+          <div class="section-heading"><div><h2><el-icon><Calendar /></el-icon>可预约时段</h2><p>每天 08:00–22:00，每段 1 小时；展示今天至 14 天后仍开放的时段。</p></div><RouterLink v-if="isOperator" :to="`/manage/venues/${venue.id}`"><el-button>进入运营工作台</el-button></RouterLink></div>
         <StatePanel v-if="!slots.length" title="暂时没有开放时段" description="稍后回来看看，或选择其他地点。" />
         <div v-else class="slot-list">
           <article v-for="slot in slots" :key="slot.id" class="slot-row">
             <div class="slot-date"><strong class="data-value">{{ slot.slotDate.slice(5) }}</strong><span>{{ slot.slotDate }}</span></div>
             <div class="slot-time"><strong class="data-value">{{ slot.startTime.slice(0, 5) }}–{{ slot.endTime.slice(0, 5) }}</strong><span>剩余 {{ slot.availableCapacity }} / {{ slot.capacity }} 位</span></div>
             <div class="slot-price data-value">{{ Number(slot.price) ? formatMoney(slot.price) : '免费' }}</div>
-            <el-button v-if="!isOperator" type="primary" :disabled="slot.availableCapacity <= 0" :loading="actionId === slot.id" @click="book(slot)">{{ slot.availableCapacity > 0 ? '确认预约' : '已满' }}</el-button>
+            <el-button v-if="!isOperator" type="primary" :disabled="!!bookingUnavailable(slot)" :loading="actionId === slot.id" @click="book(slot)">{{ bookingUnavailable(slot) || '确认预约' }}</el-button>
           </article>
         </div>
       </section>
